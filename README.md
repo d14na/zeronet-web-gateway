@@ -6,7 +6,7 @@ https://web.0net.io
 
 The 0net Web Gateway is a secure portal for (Clearnet) Internet users to gain their first decentralized web experience.
 
-### What happens on Zeronet, stays on Zeronet™ — #hozsoz
+### What happens on Zeronet, stays on Zeronet™ — #whozsoz
 
 ## Zer0̸net Gateway Benefits
 
