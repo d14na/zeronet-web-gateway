@@ -2,7 +2,7 @@
 
 ### https://web.0net.io
 
-> TL;DR — Be Safe, Be Free, and TrustLess!
+> TL;DR — Be Safe. Be Free. TrustLess!
 
 The 0net Web Gateway is a secure portal for (Clearnet) Internet users to gain their first decentralized web experience.
 
