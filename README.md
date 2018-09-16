@@ -1,6 +1,6 @@
 # Zer0̸net Web Gateway
 
-https://web.0net.io
+### https://web.0net.io
 
 > TL;DR — Be Safe, Be Free, and TrustLess!
 
