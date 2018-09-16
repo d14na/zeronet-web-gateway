@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<!--[if lte IE 6]><html class="preIE7 preIE8 preIE9"><![endif]-->
+<!--[if IE 7]><html class="preIE8 preIE9"><![endif]-->
+<!--[if IE 8]><html class="preIE9"><![endif]-->
+<!--[if gte IE 9]><!--><html><!--<![endif]-->
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
+    <title>0net Web Gateway</title>
+    <meta name="author" content="D14na">
+    <meta name="description" content="What happens in the Zeronet, stays in the Zeronet™. The 0net Gateway is a secure portal for Internet users to gain their first decentralized web experience.">
+    <meta name="keywords" content="0net, zeronet, p2p, peer-to-peer, decentralized, decentralized web, crypto, bitcoin, ethereum">
+
+    <!--[if IE]><link rel="shortcut icon" href="/images/favicon.ico"><![endif]-->
+    <link rel="icon" href="/images/favicon.png">
+    <link rel="apple-touch-icon-precomposed" href="/images/apple-touch-icon-precomposed.png">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css" type="text/css">
+    <link rel="stylesheet" href="/css/main.css" type="text/css">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto" type="text/css">
+
+    <!-- Modernizr -->
+    <script src="/js/modernizr.min.js" type="text/javascript"></script>
+
+    <style type="text/css">
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #F0F0F0;
+        font-family: "Arial";
+    }
+
+    #log {
+        font-size: 0.7em;
+        color: rgba(120, 120, 120, 1.0);
+    }
+
+    .box {
+        background-color: rgba(255, 0, 0, 0.2);
+        width: 150px;
+        float: left;
+        margin: 0 20px 0 20px;
+    }
+    .box div, .box input {
+        border: 1px solid;
+        -moz-border-radius: 4px;
+        border-radius: 4px;
+        width: 100%;
+        padding: 0px;
+        margin: 5px;
+    }
+    .box div {
+        border-color: grey;
+        height: 50px;
+        overflow: auto;
+    }
+    .box input {
+        height: 20px;
+    }
+    h1 {
+        margin-left: 30px;
+    }
+    nav {
+        /* background-color: #f33; */
+        /* background-color: rgba(255, 0, 0, 0.2); */
+        position: relative;
+        z-index: 2;
+    }
+
+    iframe {
+        background-color: rgba(30, 30, 220, 0.5);
+        width: 100%;
+        height: 100%;
+    }
+    </style>
+</head>
+
+<body>
+
+<div id="test" class="box">
+  <div></div>
+
+  <form>
+      <input autocomplete="off" placeholder="Enter HTML body here..."></input>
+  </form>
+</div>
+
+<div id="log"><!-- log messages --></div>
+
+<!-- Site Iframe -->
+<iframe src='gatekeeper.html' id='gatekeeper' sandbox="allow-forms allow-scripts"></iframe>
+
+<!-- JavaScript Libraries -->
+<script src="/js/jquery.min.js" type="text/javascript"></script>
+<script src="/js/bootstrap.min.js" type="text/javascript"></script>
+<script src="/js/sockjs.min.js" type="text/javascript"></script>
+<script src="/js/web3.min.js" type="text/javascript"></script>
+<script src="/js/pouchdb.min.js" type="text/javascript"></script>
+<script src="/js/moment.min.js" type="text/javascript"></script>
+
+<!-- Embedded JavaScript code (TODO Move to external libraries) -->
+<script>
+/* Initialize constants. */
+const WS_ENDPOINT = 'https://0pen.0net.io' // Websocket endpoint
+const INFURA_API_KEY = '61a2428e6a4e41a695d876dfac323f0f' // Infura API key
+
+/* Initialize connection holder. */
+let conn = null
+
+/* Initialize Gatekeeper's Ready flag. */
+let isReady = false
+
+/* Initialize a no-op stub. */
+function noop() {}
+
+/* Initialize a holder to gatekeeper's (iframe). */
+const gatekeeper = $('#gatekeeper')
+// console.log('GATEKEEPER', gatekeeper)
+
+/* Initialize the gatekeeper's content window. */
+const contentWindow = gatekeeper[0].contentWindow
+
+/**
+ * Add Log Entry
+ *
+ * NOTE All significant activity (that is NOT directly alerted to the user)
+ *      is recorded by this log window.
+ */
+const _addLog = function (_message) {
+    /* Retrieve log window. */
+    const log = $('#log')
+
+    /* Build new log entry. */
+    const entry = `${moment().format('YYYY.MM.DD@HH:mm:ss')} [ ${_message} ]`
+
+    /* Add divider. */
+    if (log.html() !== '<!-- log messages -->') {
+        log.prepend('<br /><hr />')
+    }
+
+    /* Insert new entry (at log beginning). */
+    log.prepend(entry)
+}
+
+/**
+ * Event Listener: MESSAGE
+ *
+ * Receives and handles ALL incoming messages from our embedded iframe.
+ *
+ * WARNING Sandboxed iframes which lack the 'allow-same-origin'
+ * header have "null" rather than a valid origin. This means we still
+ * have to be careful about accepting data via the messaging API we've
+ * created. We verify the source, and validate ALL inputs.
+ */
+window.addEventListener('message', function (_event) {
+// console.log('Event', _event)
+
+    /* Retrieve origin. */
+    const origin = _event.origin
+
+    /* Retrieve source. */
+    const source = _event.source
+
+    /* Validate the message contents. */
+    if (origin === 'null' && source === contentWindow) {
+        /* Retrieve data. */
+        const data = _event.data
+
+        /* Validate data. */
+        if (data) {
+// console.log('DATA received', data)
+
+            /* Handle any errors. */
+            if (data.error) {
+                return _addLog(`Oops! We have a problem.<br /><br />${data.msg}`)
+            }
+
+            /* Verify we have a successful message. */
+            if (data.success) {
+                _addLog(data.msg)
+
+                /* Validate Iframe authorization. */
+                if (data.msg === 'GATEKEEPER_IS_READY') {
+                    console.info('Gatekeeper is ready to go!')
+
+                    /* Set Gatekeeper ready flag. */
+                    isReady = true
+                }
+            }
+        } else {
+            /* Report any communications error. */
+            _addLog('Oops! Something went wrong.' +
+                  'We DID NOT receive the data we were looking for. ' +
+                  'What we did receive was:<br /><br />' +
+                  JSON.stringify(data))
+        }
+    }
+})
+
+/**
+ * Send Message
+ *
+ * WARNING We're sending the message to "*", rather than some specific
+ * origin. Sandboxed iframes which lack the 'allow-same-origin' header
+ * don't have an origin which we can target.
+ * (this might allow some "zero-day-style" esoteric attacks)
+ */
+const _sendMessage = function (_message={}) {
+    contentWindow.postMessage(_message, '*')
+}
+
+/**
+ * Authorize Gatekeeper
+ */
+const _authGatekeeper = function () {
+    /* Validate application initialization. */
+    if (!isReady) {
+        setTimeout(function () {
+            console.info('Requesting gatekeeper authorization.')
+
+            /* Send empty message to the gatekeeper for initialization. */
+            _sendMessage()
+        }, 1000)
+    }
+}
+
+// if (Modernizr.websockets) {
+//     _addLog('Your browser supports WebSockets.');
+// } else {
+//     _addLog('Your browser does NOT support WebSockets.');
+// }
+
+// if (Modernizr.filesystem) {
+//     _addLog('Your browser supports Filesystem API.');
+// } else {
+//     _addLog('Your browser does NOT support Filesystem API.');
+// }
+
+// navigator.webkitPersistentStorage.requestQuota(1024*1024, function() {
+//     window.webkitRequestFileSystem(window.PERSISTENT , 1024*1024, noop)
+// })
+
+
+/*******************************************************************************
+
+  PouchDB
+  https://pouchdb.com/
+
+  We are using PouchDB to manage all "large" data sets stored by the browser.
+
+*******************************************************************************/
+
+/* Initialize PouchDB for ALL required (configuration) data. */
+const dbMain = new PouchDB('main')
+
+/* Initialize PouchDB for (primary) zite files. */
+// NOTE Separate db is used in the event of an LRU total database deletion.
+//      see https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Browser_storage_limits_and_eviction_criteria
+const dbFiles = new PouchDB('files')
+
+/* Initialize PouchDB for (optional) zite files. */
+// NOTE Separate db is used in the event of an LRU total database deletion.
+//      see https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Browser_storage_limits_and_eviction_criteria
+const dbOptional = new PouchDB('optional')
+
+/* Initialize PouchDB for non-zite media (eg. downloaded or torrent data). */
+// NOTE Separate db is used in the event of an LRU total database deletion.
+//      see https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Browser_storage_limits_and_eviction_criteria
+const dbMedia = new PouchDB('media')
+
+/**
+ * @notice Save configuration to db.
+ *
+ * @dev Write data to our pouchdb.
+ */
+const _saveConfig = function (_params) {
+    /* Build object. */
+    const config = {
+        _id: new Date().toISOString(),
+        params: _params,
+        isVerified: true
+    }
+
+    /* Write to db. */
+    dbMain.put(config, function callback(err, result) {
+console.log('ERR', err)
+console.log('RESULT', result)
+
+        if (!err) {
+            console.log('Successfully saved config.')
+        }
+    })
+}
+
+const _loadConfig = function () {
+    /* Initialize options. */
+    const options = {
+        include_docs: true,
+        descending: true
+    }
+
+    dbMain.allDocs(options, function (err, docs) {
+console.log('RETRIEVED DOCS', docs)
+
+        /* Initialize doc recordset. */
+        const rs = docs.rows
+
+        if (rs && rs[1]) {
+            dbMain.remove(rs[1].doc)
+console.log('removed a doc')
+        } else {
+console.log('nothing to remove here')
+        }
+
+        console.log('HEY! lets open a new connection')
+        _connect()
+    })
+}
+
+// _saveConfig('content.json')
+// _loadConfig()
+
+
+
+/**
+ * Websocket Connect
+ *
+ * Open a new connection to the Zero Private Enterprise Network (0PEN).
+ * via a websocket (or applicable fallback) connection.
+ *
+ * NOTE The closest (available) server can be reached by querying the DNS list:
+ *      https://0pen.0net.io
+ */
+const _connect = function () {
+    /* Create a new Socket JS connection . */
+    conn = new SockJS(WS_ENDPOINT)
+
+    /* Initialize event handlers. */
+    conn.onopen = _connOpen
+    conn.onmessage = _connMessage
+    conn.onclose = _connClose
+}
+
+/**
+ * Websocket - Connection Opened
+ */
+const _connOpen = async function () {
+    print('[*] open', conn.protocol)
+
+    const proof = '0net:192.168.1.1:11337:timestamp'
+console.log('PROOF', proof)
+
+    const signedProof = await signAuth(proof)
+console.log('SIGNED PROOF', signedProof)
+
+    const pkg = {
+        action: 'AUTH',
+        sig: signedProof
+    }
+
+    conn.send(JSON.stringify(pkg))
+}
+
+/**
+ * Websocket - Message Received
+ */
+const _connMessage = function (e) {
+    print('[.] message', e.data)
+}
+
+/**
+ * Websocket - Connection Closed
+ */
+const _connClose = function () {
+    print('[*] close')
+}
+
+/**
+ * Signs a (data) proof provided by the server for account authentication.
+ */
+const signAuth = async function (_proof) {
+    /* Initialize a new web3 object to our provider. */
+    const web3 = new Web3()
+    // const web3 = new Web3(new Web3.providers.HttpProvider('https://mainnet.infura.io/v3/' + INFURA_API_KEY))
+
+    const privateKey = '0x9b2495bf3d9f3116a4ec7301cc2d8cd8c9d86b4f09b813a8455d8db18d6eb00'
+    // const privateKey = '0x9b2495bf3d9f3116a4ec7301cc2d8cd8c9d86b4f09b813a8455d8db18d6eb00d'
+console.log('PRIVATE KEY', privateKey)
+
+    /* Create the signature by signing the proof with private key. */
+    const signature = web3.eth.accounts.sign(_proof, privateKey)
+
+    /* Return the signed proof. */
+    return signature
+}
+
+/* FOR TESTING PURPOSES ONLY */
+const div  = $('#test div')
+const inp  = $('#test input')
+const form = $('#test form')
+inp.focus()
+form.submit(function () {
+    /* Build msg. */
+    const msg = {
+        body: inp.val()
+    }
+
+    /* Send msg. */
+    _sendMessage(msg)
+
+    /* Reset input. */
+    inp.val('')
+
+    return false
+})
+
+
+/* jQuery says it's time to boogie! */
+$(document).ready(function () {
+    /* Send an empty message to the gatekeeper to initialize. */
+    _authGatekeeper()
+})
+</script>
+
+</body>
+</html>

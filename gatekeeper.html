@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<script src="/js/jquery.min.js" type="text/javascript"></script>
+<script>
+/* Initialize security check flag. */
+// let isSecure = false
+
+/* Initialize parent holder. */
+let parent = null
+
+/* Initialize origin holder. */
+let origin = null
+
+/* Initialize response holder. */
+// let response = null
+
+/**
+ * @notice Initialize the gateway.
+ *
+ * @dev We want to set the security to our parent to prevent any
+ *      unauthorized communication with any "malicious" 3rd-parties
+ *      who may be eavesdropping.
+ */
+const _init = function (_event) {
+    /* Validate the origin of our parent is ONLY one from an approved list. */
+    if (_event.origin === 'https://0net.io' || _event.origin === 'https://web.0net.io') {
+        /* Set security flag. */
+        // isSecure = true
+
+        /* Set the parent holder. */
+        parent = _event.source
+
+        /* Set the origin holder. */
+        origin = _event.origin
+
+        return true
+    } else {
+        return false
+    }
+}
+
+const _callback = function (_message) {
+    /* Validate the response. */
+    if (parent && origin && _message) {
+        parent.postMessage(_message, origin)
+    } else {
+        throw new Error('Oh no! Something smells wrong about this action.')
+    }
+}
+
+window.addEventListener('message', function (_event) {
+    // console.log('Gatekeeper received event', _event)
+
+    /* Verify parent is authorized and set. */
+    if (!parent) {
+        /* Attempt to initialize the gateway. */
+        if (_init(_event)) {
+            /* Build message. */
+            const message = {
+                success: true,
+                msg: 'GATEKEEPER_IS_READY'
+            }
+
+            /* Callback to parent. */
+            return _callback(message)
+        } else {
+            /* Build message. */
+            const message = {
+                error: true,
+                msg: 'Authorization failed!'
+            }
+
+            /* Callback to parent. */
+            return _callback(message)
+        }
+    }
+
+    /* Initialize message object. */
+    let message = null
+
+    /* All messages should be JSON strings, so let's try to decode to an object. */
+    try {
+        /* Retrieve the data. */
+        const data = _event.data
+
+        /* Retrieve html body. */
+        const body = data.body
+
+        /* Update the frame's html body. */
+        $('body').html(body)
+    } catch (e) {
+        /* Build error. */
+        const msg = {
+            error: true,
+            msg: e
+        }
+
+        /* Callback to parent. */
+        return _callback(msg)
+    }
+
+    /* Initialize the parent (window). */
+    // const parent = _event.source
+
+    // response = `You want me to ${_event.data}?`
+
+})
+</script>
+</head>
+<body></body>
+</html>
