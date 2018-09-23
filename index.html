@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="/css/main.css" type="text/css">
 
     <!-- Fonts -->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
     <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto" type="text/css">
 
     <!-- Modernizr -->
@@ -31,8 +32,9 @@
     body {
         margin: 0;
         padding: 0;
-        background-color: #F0F0F0;
-        font-family: "Arial";
+        /* background-color: #fff; */
+        background-color: #efefef;
+        font-family: "Roboto";
     }
 
     #gatekeeper {
@@ -49,16 +51,57 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-5">
-            <div id="test" class="box">
-              <form>
-                  <input autocomplete="off" placeholder="Enter HTML body here..."></input>
-              </form>
+
+            <div class="btn-toolbar mt-1" role="toolbar" aria-label="0net Toolbar">
+                <div class="btn-group mr-2" role="group" aria-label="Navigation group #1">
+                    <a class="btn btn-sm btn-primary" href="javascript://">
+                        <i class="fa fa-home" title="Homepage"></i>
+                    </a>
+                </div>
+
+                <div class="btn-group mr-2" role="group" aria-label="Navigation group #2">
+                    <a class="btn btn-sm btn-secondary" href="javascript://">
+                        <i class="fa fa-refresh" title="Refresh"></i>
+                    </a>
+                    <a class="btn btn-sm btn-secondary" href="javascript://">
+                        <i class="fa fa-heart" title="Favorite"></i>
+                    </a>
+                </div>
+
+                <div class="btn-group mr-2" role="group" aria-label="Navigation group #3">
+                    <a class="btn btn-sm btn-danger" href="javascript://">
+                        <i class="fa fa-trash-o" title="Remove"></i>
+                    </a>
+                </div>
             </div>
+
+            <hr />
+
+            <h6 class="text-center">My (Connection) Location</h6>
+            <div class="location text-center"><!-- show location here --></div>
+
         </div>
 
         <div class="col-7">
+
+            <div class="peerId text-center"><!-- peerId holder --></div>
+            <form class="mt-1">
+                <label class="sr-only" for="inlineFormInputGroup">Username</label>
+                <div class="input-group mb-2">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text form-control-sm">zero://</div>
+                    </div>
+                    <input type="text" class="form-control form-control-sm inpZiteSearch" placeholder="Enter a Zitetag or Search...">
+                </div>
+
+                <input type="text" class="form-control form-control-sm inpGatekeeper" placeholder="Echo to Gatekeeper..."></input>
+            </form>
+
+            <hr />
+
             <button class="btn btn-warning btn-sm btn-block btnDbTests">Start DB Tests</button>
             <button class="btn btn-warning btn-sm btn-block btn0penTests">Start 0PEN Tests</button>
+
         </div>
     </div>
 
@@ -75,6 +118,8 @@
 <script src="/js/web3.min.js" type="text/javascript"></script>
 <script src="/js/pouchdb.min.js" type="text/javascript"></script>
 <script src="/js/moment.min.js" type="text/javascript"></script>
+<!-- <script src="/js/sha1.min.js" type="text/javascript"></script> -->
+<script src="/js/crypto-js.min.js" type="text/javascript"></script>
 
 <!-- Embedded JavaScript code (TODO Move to external libraries) -->
 <script>
@@ -87,6 +132,9 @@ let conn = null
 
 /* Initialize Gatekeeper's Ready flag. */
 let gateReady = false
+
+/* Initialize peer id. */
+let peerId = null
 
 /* Initialize a no-op stub. */
 function noop() {}
@@ -106,7 +154,7 @@ const contentWindow = gatekeeper[0].contentWindow
  */
 const _addLog = function (_message) {
     /* Build new log entry. */
-    const timestamp = `➤ 0PEN ${moment().format('YYYY.MM.DD@HH:mm:ss')}`
+    const timestamp = `➤ 0PEN ${moment().format('YYYY.MM.DD @ HH:mm:ss')}`
     const entry = `[ ${_message} ]`
 
     /* Write to console. */
@@ -179,14 +227,14 @@ window.addEventListener('message', function (_event) {
 })
 
 /**
- * Send Message
+ * Send Gateway Message
  *
  * WARNING We're sending the message to "*", rather than some specific
  * origin. Sandboxed iframes which lack the 'allow-same-origin' header
  * don't have an origin which we can target.
  * (this might allow some "zero-day-style" esoteric attacks)
  */
-const _sendMessage = function (_message={}) {
+const _gatekeeperMsg = function (_message={}) {
     contentWindow.postMessage(_message, '*')
 }
 
@@ -200,7 +248,7 @@ const _authGatekeeper = function () {
             console.info('Requesting gatekeeper authorization.')
 
             /* Send empty message to the gatekeeper for initialization. */
-            _sendMessage()
+            _gatekeeperMsg()
         }, 1000)
     }
 }
@@ -367,12 +415,67 @@ const _connect = function () {
     conn.onclose = _connClose
 }
 
-/**
- * Websocket - Connection Opened
- */
-const _connOpen = async function () {
-    console.info('0PEN connected successfully.')
+const _send0penMessage = function (_msg) {
+    if (conn.readyState === 1) {
+        conn.send(JSON.stringify(_msg))
 
+        return true
+    } else {
+        alert('0PEN is disconnected! Please try your request again...')
+
+        return false
+    }
+}
+
+const _handle0penMessage = function (_msg) {
+    try {
+        /* Parse incoming message. */
+        let msg = JSON.parse(_msg)
+        console.log('Received', msg)
+
+        /* Retrieve the action. */
+        const action = msg.action
+
+        /* Initialize data holders. */
+        let result = null
+
+        switch (action.toUpperCase()) {
+            case 'WHOAMI':
+                /* Retrieve the identity. */
+                const identity = msg.identity
+
+                /* Calculate peer id. */
+                peerId = CryptoJS.SHA1(identity)
+
+                /* Update peer id on UI. */
+                $('.peerId').html(`<span class="badge badge-info mt-1">PID: ${peerId}</span>`)
+
+                /* Update the location display. */
+                $('.location').html(`<span class="badge badge-info">${identity}</span>`)
+
+                break
+            case 'SEARCH':
+                /* Retrieve message result. */
+                result = msg.result
+
+                /* Build gatekeeper message. */
+                msg = {
+                    body: result
+                }
+
+                /* Send message to gatekeeper. */
+                _gatekeeperMsg(msg)
+
+                break
+            default:
+                // nothing to do here
+        }
+    } catch (e) {
+        _errorHandler(e)
+    }
+}
+
+const _authRequest = async function () {
     /* Initialize network protocol. */
     const network = '0NET-TLR' // 0NET: TrustLess Republic
 
@@ -395,14 +498,35 @@ const _connOpen = async function () {
     }
 
     /* Send package. */
-    conn.send(JSON.stringify(pkg))
+    _send0penMessage(pkg)
 }
+
+/**
+ * Websocket - Connection Opened
+ */
+const _connOpen = async function () {
+    console.info('0PEN connected successfully.')
+
+
+    /* Build package. */
+    const pkg = {
+        action: 'WHOAMI'
+    }
+
+    /* Send package. */
+    _send0penMessage(pkg)
+}
+
+
 
 /**
  * Websocket - Message Received
  */
 const _connMessage = function (e) {
-    console.info('Incoming 0PEN message', e.data)
+    // console.info('Incoming 0PEN message', e.data)
+
+    /* Handle incoming 0PEN message. */
+    _handle0penMessage(e.data)
 }
 
 /**
@@ -432,24 +556,25 @@ const signAuth = async function (_proof) {
     return signature
 }
 
-/* FOR TESTING PURPOSES ONLY */
-const div  = $('#test div')
-const inp  = $('#test input')
-const form = $('#test form')
-inp.focus()
-form.submit(function () {
-    /* Build msg. */
-    const msg = {
-        body: inp.val()
+
+/**
+ * Manage Zitetags & Searching
+ */
+const inpZiteSearch = $('.inpZiteSearch')
+inpZiteSearch.on('keyup', function (e) {
+    if (e.keyCode === 13) {
+        /* Build package. */
+        const pkg = {
+            action: 'SEARCH',
+            query: inpZiteSearch.val()
+        }
+
+        /* Send package. */
+        if (_send0penMessage(pkg)) {
+            /* Reset input. */
+            inpZiteSearch.val('')
+        }
     }
-
-    /* Send msg. */
-    _sendMessage(msg)
-
-    /* Reset input. */
-    inp.val('')
-
-    return false
 })
 
 
@@ -468,6 +593,24 @@ const _runDbTests = async function () {
 const _run0penTests = async function () {
     console.log('Do something!');
 }
+
+/* FOR TESTING PURPOSES ONLY */
+const inpGatekeeper = $('.inpGatekeeper')
+inpGatekeeper.on('keyup', function (e) {
+    if (e.keyCode === 13) {
+        /* Build gatekeeper message. */
+        const msg = {
+            body: inpGatekeeper.val()
+        }
+
+        /* Send message to gatekeeper. */
+        _gatekeeperMsg(msg)
+
+        /* Reset input. */
+        inpGatekeeper.val('')
+    }
+})
+
 
 
 /* jQuery says it's time to boogie! */
