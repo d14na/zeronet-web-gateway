@@ -148,6 +148,13 @@ const _addLog = function (_message) {
 }
 
 /**
+ * Error Handler
+ */
+const _errorHandler = function (_err) {
+    throw new Error(_err)
+}
+
+/**
  * Event Listener: MESSAGE
  *
  * Receives and handles ALL incoming messages from our embedded iframe.
@@ -274,56 +281,113 @@ const dbOptional = new PouchDB('optional')
 const dbMedia = new PouchDB('media')
 
 /**
- * @notice Save configuration to db.
+ * @notice Save configuration data to database.
  *
- * @dev Write data to our pouchdb.
+ * @dev Write config data to our pouchdb.
  */
-const _saveConfig = function (_params) {
-    /* Build object. */
-    const config = {
-        _id: new Date().toISOString(),
-        params: _params,
-        isVerified: true
+const _saveFile = async function (_name, _data) {
+    /* Verify config in cache. */
+    const exists = await _getFile(_name)
+
+    /* Initialize result. */
+    let result = null
+
+    if (exists && exists._id === _name) {
+        /* Build package. */
+        const pkg = {
+            ...exists,
+            data: _data,
+            lastUpdate: new Date().toJSON()
+        }
+
+        /* Update document in database. */
+        result = await dbMain.put(pkg)
+            .catch(_errorHandler)
+    } else {
+        /* Build package. */
+        const pkg = {
+            _id: _name,
+            data: _data,
+            dataAdded:  new Date().toJSON(),
+            lastUpdate: new Date().toJSON()
+        }
+
+        /* Add document to database. */
+        result = await dbMain.put(pkg)
+            .catch(_errorHandler)
     }
 
-    /* Write to db. */
-    dbMain.put(config, function callback(err, result) {
-console.log('ERR', err)
-console.log('RESULT', result)
-
-        if (!err) {
-            console.log('Successfully saved config.')
-        }
-    })
+    /* Return the result. */
+    if (result) {
+        // console.log('Successfully saved config.', result)
+        return result
+    }
 }
 
-const _loadConfig = function () {
+/**
+ * @notice Retreive configuration data from database.
+ *
+ * @dev Read config data from our pouchdb.
+ */
+const _getFile = async function (_name) {
     /* Initialize options. */
     const options = {
+        key: _name,
         include_docs: true,
         descending: true
     }
 
-    dbMain.allDocs(options, function (err, docs) {
-console.log('RETRIEVED DOCS', docs)
+    /* Retrieve all docs (using `key` filter). */
+    const docs = await dbMain.allDocs(options)
+        .catch(_errorHandler)
 
-        /* Initialize doc recordset. */
-        const rs = docs.rows
+    /* Validate docs. */
+    if (docs && docs.rows.length) {
+        /* Retrieve the doc recordset. */
+        const doc = docs.rows[0].doc
 
-        if (rs && rs[1]) {
-            dbMain.remove(rs[1].doc)
-console.log('removed a doc')
-        } else {
-console.log('nothing to remove here')
-        }
-
-        console.log('HEY! lets open a new connection')
-        _connect()
-    })
+        /* Return the document. */
+        return doc
+    } else {
+        /* No records found. */
+        return null
+    }
 }
 
-// _saveConfig('content.json')
-// _loadConfig()
+const _removeFile = async function (_name) {
+    /* Verify config in cache. */
+    const exists = await _getFile(_name)
+
+    /* Initialize result. */
+    let result = null
+
+    if (exists && exists._id === _name) {
+        /* Remove document from database. */
+        result = await dbMain.remove(exists)
+            .catch(_errorHandler)
+    } else {
+        return _errorHandler(new Error('File was NOT found.'))
+    }
+
+    /* Return the result. */
+    if (result) {
+        // console.log('Successfully saved config.', result)
+        return result
+    }
+}
+
+// RUN TESTS
+const runTests = async function () {
+    // console.log('SAVING...', await _saveFile('settings', { autoUpdate: false, gpMode: true }))
+    // console.log('SAVING...', await _saveFile('content.json', { title: 'Even Better Zite!' }))
+
+    console.log('SETTINGS', await _getFile('settings'))
+    // console.log('SAMPLE (content.json)', await _getFile('content.json'))
+
+    // console.log('REMOVING...', await _removeFile('settings'))
+}
+
+runTests()
 
 
 
