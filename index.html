@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <title>0net Web Gateway</title>
     <meta name="author" content="D14na">
@@ -35,65 +35,38 @@
         font-family: "Arial";
     }
 
-    #log {
-        font-size: 0.7em;
-        color: rgba(120, 120, 120, 1.0);
-    }
-
-    .box {
-        background-color: rgba(255, 0, 0, 0.2);
-        width: 150px;
-        float: left;
-        margin: 0 20px 0 20px;
-    }
-    .box div, .box input {
-        border: 1px solid;
-        -moz-border-radius: 4px;
-        border-radius: 4px;
-        width: 100%;
-        padding: 0px;
-        margin: 5px;
-    }
-    .box div {
-        border-color: grey;
-        height: 50px;
-        overflow: auto;
-    }
-    .box input {
-        height: 20px;
-    }
-    h1 {
-        margin-left: 30px;
-    }
-    nav {
-        /* background-color: #f33; */
-        /* background-color: rgba(255, 0, 0, 0.2); */
-        position: relative;
-        z-index: 2;
-    }
-
-    iframe {
+    #gatekeeper {
         background-color: rgba(30, 30, 220, 0.5);
         width: 100%;
         height: 100%;
+        border: 0;
     }
     </style>
 </head>
 
 <body>
 
-<div id="test" class="box">
-  <div></div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-5">
+            <div id="test" class="box">
+              <form>
+                  <input autocomplete="off" placeholder="Enter HTML body here..."></input>
+              </form>
+            </div>
+        </div>
 
-  <form>
-      <input autocomplete="off" placeholder="Enter HTML body here..."></input>
-  </form>
+        <div class="col-7">
+            <button class="btn btn-warning btn-sm btn-block btnDbTests">Start DB Tests</button>
+            <button class="btn btn-warning btn-sm btn-block btn0penTests">Start 0PEN Tests</button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 0net Iframe -->
+        <iframe src='gatekeeper.html' id='gatekeeper' sandbox="allow-forms allow-scripts"></iframe>
+    </div>
 </div>
-
-<div id="log"><!-- log messages --></div>
-
-<!-- Site Iframe -->
-<iframe src='gatekeeper.html' id='gatekeeper' sandbox="allow-forms allow-scripts"></iframe>
 
 <!-- JavaScript Libraries -->
 <script src="/js/jquery.min.js" type="text/javascript"></script>
@@ -113,7 +86,7 @@ const INFURA_API_KEY = '61a2428e6a4e41a695d876dfac323f0f' // Infura API key
 let conn = null
 
 /* Initialize Gatekeeper's Ready flag. */
-let isReady = false
+let gateReady = false
 
 /* Initialize a no-op stub. */
 function noop() {}
@@ -132,19 +105,12 @@ const contentWindow = gatekeeper[0].contentWindow
  *      is recorded by this log window.
  */
 const _addLog = function (_message) {
-    /* Retrieve log window. */
-    const log = $('#log')
-
     /* Build new log entry. */
-    const entry = `${moment().format('YYYY.MM.DD@HH:mm:ss')} [ ${_message} ]`
+    const timestamp = `➤ 0PEN ${moment().format('YYYY.MM.DD@HH:mm:ss')}`
+    const entry = `[ ${_message} ]`
 
-    /* Add divider. */
-    if (log.html() !== '<!-- log messages -->') {
-        log.prepend('<br /><hr />')
-    }
-
-    /* Insert new entry (at log beginning). */
-    log.prepend(entry)
+    /* Write to console. */
+    console.info('%c' + timestamp + '%c ' + entry, 'color:red', 'color:black')
 }
 
 /**
@@ -196,7 +162,10 @@ window.addEventListener('message', function (_event) {
                     console.info('Gatekeeper is ready to go!')
 
                     /* Set Gatekeeper ready flag. */
-                    isReady = true
+                    gateReady = true
+
+                    /* Connect to 0PEN. */
+                    _connect()
                 }
             }
         } else {
@@ -226,7 +195,7 @@ const _sendMessage = function (_message={}) {
  */
 const _authGatekeeper = function () {
     /* Validate application initialization. */
-    if (!isReady) {
+    if (!gateReady) {
         setTimeout(function () {
             console.info('Requesting gatekeeper authorization.')
 
@@ -376,18 +345,6 @@ const _removeFile = async function (_name) {
     }
 }
 
-// RUN TESTS
-const runTests = async function () {
-    // console.log('SAVING...', await _saveFile('settings', { autoUpdate: false, gpMode: true }))
-    // console.log('SAVING...', await _saveFile('content.json', { title: 'Even Better Zite!' }))
-
-    console.log('SETTINGS', await _getFile('settings'))
-    // console.log('SAMPLE (content.json)', await _getFile('content.json'))
-
-    // console.log('REMOVING...', await _removeFile('settings'))
-}
-
-runTests()
 
 
 
@@ -414,19 +371,30 @@ const _connect = function () {
  * Websocket - Connection Opened
  */
 const _connOpen = async function () {
-    print('[*] open', conn.protocol)
+    console.info('0PEN connected successfully.')
 
-    const proof = '0net:192.168.1.1:11337:timestamp'
-console.log('PROOF', proof)
+    /* Initialize network protocol. */
+    const network = '0NET-TLR' // 0NET: TrustLess Republic
+
+    /* Initialize ip address & port. */
+    const address = '192.168.1.1:11337'
+
+    /* Initialize nonce. */
+    const nonce = moment().unix()
+
+    const proof = `${network}:${address}:${nonce}`
+    console.info('Generated authentication proof', proof)
 
     const signedProof = await signAuth(proof)
-console.log('SIGNED PROOF', signedProof)
+    console.info('Signed proof', signedProof)
 
+    /* Build package. */
     const pkg = {
         action: 'AUTH',
         sig: signedProof
     }
 
+    /* Send package. */
     conn.send(JSON.stringify(pkg))
 }
 
@@ -434,14 +402,14 @@ console.log('SIGNED PROOF', signedProof)
  * Websocket - Message Received
  */
 const _connMessage = function (e) {
-    print('[.] message', e.data)
+    console.info('Incoming 0PEN message', e.data)
 }
 
 /**
  * Websocket - Connection Closed
  */
 const _connClose = function () {
-    print('[*] close')
+    console.info('0PEN connecton closed.')
 }
 
 /**
@@ -452,9 +420,10 @@ const signAuth = async function (_proof) {
     const web3 = new Web3()
     // const web3 = new Web3(new Web3.providers.HttpProvider('https://mainnet.infura.io/v3/' + INFURA_API_KEY))
 
-    const privateKey = '0x9b2495bf3d9f3116a4ec7301cc2d8cd8c9d86b4f09b813a8455d8db18d6eb00'
-    // const privateKey = '0x9b2495bf3d9f3116a4ec7301cc2d8cd8c9d86b4f09b813a8455d8db18d6eb00d'
-console.log('PRIVATE KEY', privateKey)
+    // const privateKey = '0x9b2495bf3d9f3116a4ec7301cc2d8cd8c9d86b4f09b813a8455d8db18d6eb00' // 0xF51175cF846f88b9419228905d63dcDd43aeC9E8 (invalid)
+    // const privateKey = '9b2495bf3d9f3116a4ec7301cc2d8cd8c9d86b4f09b813a8455d8db18d6eb00d' // 0xC3e7b7f10686263f13fF2fA2313Dc00c2592481d (invalid)
+    const privateKey = '0x9b2495bf3d9f3116a4ec7301cc2d8cd8c9d86b4f09b813a8455d8db18d6eb00d' // 0x65C44EcAc56040a63da60bf5cA297951780eFEd1 (valid)
+// console.log('PRIVATE KEY', privateKey)
 
     /* Create the signature by signing the proof with private key. */
     const signature = web3.eth.accounts.sign(_proof, privateKey)
@@ -484,10 +453,30 @@ form.submit(function () {
 })
 
 
+
+// RUN TESTS
+const _runDbTests = async function () {
+    // console.log('SAVING...', await _saveFile('settings', { autoUpdate: false, gpMode: true }))
+    // console.log('SAVING...', await _saveFile('content.json', { title: 'Even Better Zite!' }))
+
+    console.log('SETTINGS', await _getFile('settings'))
+    // console.log('SAMPLE (content.json)', await _getFile('content.json'))
+
+    // console.log('REMOVING...', await _removeFile('settings'))
+}
+
+const _run0penTests = async function () {
+    console.log('Do something!');
+}
+
+
 /* jQuery says it's time to boogie! */
 $(document).ready(function () {
     /* Send an empty message to the gatekeeper to initialize. */
     _authGatekeeper()
+
+    $('.btnDbTests').click(_runDbTests)
+    $('.btn0penTests').click(_run0penTests)
 })
 </script>
 
