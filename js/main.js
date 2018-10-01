@@ -311,10 +311,33 @@ const _handle0penMessage = function (_msg) {
         /* Retrieve the action. */
         const action = msg.action
 
-        /* Initialize data holders. */
-        let result = null
+        /* Initialize body holder. */
+        let body = null
 
         switch (action.toUpperCase()) {
+        case 'GETINFO':
+            /* Retrieve config. */
+            body = `<pre><code>${JSON.stringify(msg.config, null, 4)}</code></pre>`
+
+            /* Build gatekeeper message. */
+            msg = { body }
+
+            console.log('SEND TO GATEKEEPER', msg)
+            /* Send message to gatekeeper. */
+            _gatekeeperMsg(msg)
+
+            break
+        case 'SEARCH':
+            /* Retrieve search result. */
+            body = msg.result
+
+            /* Build gatekeeper message. */
+            msg = { body }
+
+            /* Send message to gatekeeper. */
+            _gatekeeperMsg(msg)
+
+            break
         case 'WHOAMI':
             /* Retrieve the identity. */
             const identity = msg.identity
@@ -329,19 +352,6 @@ const _handle0penMessage = function (_msg) {
             $('.location').html(`<h6 class="text-info">${identity}</h6>`)
             // $('.location').html(`<span class="badge badge-info">${identity}</span>`)
             // _updateLocDetails()
-
-            break
-        case 'SEARCH':
-            /* Retrieve message result. */
-            result = msg.result
-
-            /* Build gatekeeper message. */
-            msg = {
-                body: result
-            }
-
-            /* Send message to gatekeeper. */
-            _gatekeeperMsg(msg)
 
             break
         default:
@@ -441,10 +451,23 @@ const inpZiteSearch = $('.inpZiteSearch')
 inpZiteSearch.on('keyup', function (e) {
     if (e.keyCode === 13) {
         /* Build package. */
+        // const pkg = {
+        //     action: 'SEARCH',
+        //     query: inpZiteSearch.val()
+        // }
+
+        console.log('GETINFO')
         const pkg = {
-            action: 'SEARCH',
-            query: inpZiteSearch.val()
+            action: 'GETINFO',
+            dest: '1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF'
         }
+
+        // console.log('LOADING CONTENT.JSON')
+        // const pkg = {
+        //     action: 'GETFILE',
+        //     dest: '1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF',
+        //     innerPath: 'index.html'
+        // }
 
         /* Send package. */
         if (_send0penMessage(pkg)) {
