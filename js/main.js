@@ -291,7 +291,7 @@ const _connect = function () {
 }
 
 const _send0penMessage = function (_msg) {
-    if (conn.readyState === 1) {
+    if (conn && conn.readyState === 1) {
         conn.send(JSON.stringify(_msg))
 
         return true
@@ -302,7 +302,7 @@ const _send0penMessage = function (_msg) {
     }
 }
 
-const _handle0penMessage = function (_msg) {
+const _handle0penMessage = async function (_msg) {
     try {
         /* Parse incoming message. */
         let msg = JSON.parse(_msg)
@@ -313,29 +313,52 @@ const _handle0penMessage = function (_msg) {
 
         /* Initialize body holder. */
         let body = null
+        let pkg = null
 
         switch (action.toUpperCase()) {
+        case 'GETFILE':
+            // return console.log('INCOMING MSG', msg)
+            /* Verify the signature of the configuraton (content.json). */
+            // const isSignatureValid = await _verifyConfig(msg.config)
+
+            /* Decode body. */
+            body = msg.body.toString()
+            console.log('MSG.BODY', msg.body)
+            console.log('MSG.BODY STRING', msg.body.toString())
+            
+            /* Build gatekeeper package. */
+            pkg = { body }
+
+            /* Send package to gatekeeper. */
+            _gatekeeperMsg(pkg)
+
+            break
         case 'GETINFO':
+            /* Verify the signature of the configuraton (content.json). */
+            const isSignatureValid = await _verifyConfig(msg.config)
+
             /* Retrieve config. */
-            body = `<pre><code>${JSON.stringify(msg.config, null, 4)}</code></pre>`
+            body = `
+<h1>${isSignatureValid ? 'File Signature is VALID' : 'File Signature is INVALID'}</h1>
+<pre><code>${JSON.stringify(msg.config, null, 4)}</code></pre>
+            `
 
-            /* Build gatekeeper message. */
-            msg = { body }
+            /* Build gatekeeper package. */
+            pkg = { body }
 
-            console.log('SEND TO GATEKEEPER', msg)
-            /* Send message to gatekeeper. */
-            _gatekeeperMsg(msg)
+            /* Send package to gatekeeper. */
+            _gatekeeperMsg(pkg)
 
             break
         case 'SEARCH':
             /* Retrieve search result. */
             body = msg.result
 
-            /* Build gatekeeper message. */
-            msg = { body }
+            /* Build gatekeeper package. */
+            pkg = { body }
 
-            /* Send message to gatekeeper. */
-            _gatekeeperMsg(msg)
+            /* Send package to gatekeeper. */
+            _gatekeeperMsg(pkg)
 
             break
         case 'WHOAMI':
@@ -443,37 +466,120 @@ const signAuth = async function (_proof) {
     return signature
 }
 
+/**
+ * Verify Configuration (content.json)
+ */
+const _verifyConfig = async function(_config) {
+    /**
+     * Escape unicode characters.
+     * Converts to a string representation of the unicode.
+     */
+    const escapeUnicode = function (str) {
+        return str.replace(/[^\0-~]/g, function (ch) {
+            return '\\u' + ('000' + ch.charCodeAt().toString(16)).slice(-4)
+        })
+    }
+
+    /* Retrieve address. */
+    const address = _config.address
+
+    /* Retrieve the signature. */
+    const signature = _config.signs[address]
+
+    /* Delete signs (as we can't verify ourselves in the signature). */
+    delete _config.signs
+
+    /* Convert the JSON to a string. */
+    // NOTE: This matches the functionality of Python's `json.dumps` spacing.
+    _config = JSON.stringify(_config).replace(/":/g, '": ').replace(/,"/g, ', "')
+
+    /* Escape all unicode characters. */
+    // NOTE: This matches the functionality of Python's `unicode` handling.
+    _config = escapeUnicode(_config)
+
+    return new Promise((_resolve, _reject) => {
+        $.getScript('../libs/bitcoin-message.js', () => {
+            /* Verify the Bitcoin signature. */
+            const isValid = BitcoinMessage.verify(_config, address, signature)
+
+            _resolve(isValid)
+        })
+    })
+}
+
+const _ziteSearch = function () {
+    /* Retrieve search query. */
+    const query = inpZiteSearch.val()
+    console.log('QUERY IS', query)
+
+    /* Initialize holders. */
+    let action = null
+    let dest = null
+    let innerPath = null
+    let pkg = null
+
+    if (query.slice(0, 7).toUpperCase() === 'GETINFO' && query.length > 8) {
+        /* Retrieve destination. */
+        dest = query.slice(8)
+
+        /* Set action. */
+        action = 'GETINFO'
+
+        /* Build package. */
+        pkg = { action, dest }
+    } else if (query.slice(0, 7).toUpperCase() === 'GETFILE' && query.length > 10) {
+        /* Retrieve target. */
+        const target = query.slice(8)
+
+        /* Retrieve destination. */
+        dest = target.split(':')[0]
+
+        /* Retrieve inner path. */
+        innerPath = target.split(':')[1]
+
+        /* Set action. */
+        action = 'GETFILE'
+
+        /* Build package. */
+        pkg = { action, dest, innerPath }
+    } else if (query.slice(0, 1) === '1' && (query.length === 33 || query.length === 33)) {
+        /* Set action. */
+        action = 'GETFILE'
+
+        /* Set destination. */
+        dest = query
+
+        /* Build package. */
+        pkg = { action, dest, innerPath: 'index.html' }
+    } else {
+        /* Set action. */
+        action = 'SEARCH'
+
+        /* Build package. */
+        pkg = { action, query }
+    }
+
+    /* Send package. */
+    if (_send0penMessage(pkg)) {
+        /* Reset input. */
+        inpZiteSearch.val('')
+
+        /* Remove focus. */
+        inpZiteSearch.blur()
+        btnZiteSearch.blur()
+    }
+}
 
 /**
  * Manage Zitetags & Searching
  */
+const btnZiteSearch = $('.btnZiteSearch')
+btnZiteSearch.click(_ziteSearch)
+
 const inpZiteSearch = $('.inpZiteSearch')
 inpZiteSearch.on('keyup', function (e) {
     if (e.keyCode === 13) {
-        /* Build package. */
-        // const pkg = {
-        //     action: 'SEARCH',
-        //     query: inpZiteSearch.val()
-        // }
-
-        console.log('GETINFO')
-        const pkg = {
-            action: 'GETINFO',
-            dest: '1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF'
-        }
-
-        // console.log('LOADING CONTENT.JSON')
-        // const pkg = {
-        //     action: 'GETFILE',
-        //     dest: '1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF',
-        //     innerPath: 'index.html'
-        // }
-
-        /* Send package. */
-        if (_send0penMessage(pkg)) {
-            /* Reset input. */
-            inpZiteSearch.val('')
-        }
+        _ziteSearch()
     }
 })
 
