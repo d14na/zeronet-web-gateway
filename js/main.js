@@ -54,8 +54,6 @@ const _errorHandler = function (_err) {
  * created. We verify the source, and validate ALL inputs.
  */
 window.addEventListener('message', function (_event) {
-// console.log('Event', _event)
-
     /* Retrieve origin. */
     const origin = _event.origin
 
@@ -69,8 +67,6 @@ window.addEventListener('message', function (_event) {
 
         /* Validate data. */
         if (data) {
-            // console.log('DATA received', data)
-
             /* Handle any errors. */
             if (data.error) {
                 return _addLog(`Oops! We have a problem.<br /><br />${data.msg}`)
@@ -78,12 +74,11 @@ window.addEventListener('message', function (_event) {
 
             /* Verify we have a successful message. */
             if (data.success) {
+                /* Log all successful messages to console. */
                 _addLog(data.msg)
 
                 /* Validate Iframe authorization. */
                 if (data.msg === 'GATEKEEPER_IS_READY') {
-                    console.info('Gatekeeper is ready to go!')
-
                     /* Set Gatekeeper ready flag. */
                     gateReady = true
 
@@ -116,12 +111,10 @@ const _gatekeeperMsg = function (_message={}) {
 /**
  * Authorize Gatekeeper
  */
-const _authGatekeeper = function () {
+const authGatekeeper = function () {
     /* Validate application initialization. */
     if (!gateReady) {
         setTimeout(function () {
-            console.info('Requesting gatekeeper authorization.')
-
             /* Send empty message to the gatekeeper for initialization. */
             _gatekeeperMsg()
         }, 1000)
@@ -154,60 +147,65 @@ const _authGatekeeper = function () {
 
 *******************************************************************************/
 
+
+/* Initailize database (object) manager. */
+const _dbManager = {}
+
 /* Initialize PouchDB for ALL required (configuration) data. */
-const dbMain = new PouchDB('main')
+_dbManager['main'] = new PouchDB('main')
 
 /* Initialize PouchDB for (primary) zite files. */
 // NOTE Separate db is used in the event of an LRU total database deletion.
 //      see https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Browser_storage_limits_and_eviction_criteria
-const dbFiles = new PouchDB('files')
+_dbManager['files'] = new PouchDB('files')
 
 /* Initialize PouchDB for (optional) zite files. */
 // NOTE Separate db is used in the event of an LRU total database deletion.
 //      see https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Browser_storage_limits_and_eviction_criteria
-const dbOptional = new PouchDB('optional')
+_dbManager['optional'] = new PouchDB('optional')
 
 /* Initialize PouchDB for non-zite media (eg. downloaded or torrent data). */
 // NOTE Separate db is used in the event of an LRU total database deletion.
 //      see https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Browser_storage_limits_and_eviction_criteria
-const dbMedia = new PouchDB('media')
+_dbManager['media'] = new PouchDB('media')
 
 /**
- * @notice Save configuration data to database.
+ * Data Write
  *
- * @dev Write config data to our pouchdb.
+ * Save data to one of the managed PouchDb databases.
  */
-const _saveFile = async function (_name, _data) {
+const _dbWrite = async function (_dbName, _dataLabel, _data) {
+    _addLog(`Writing ${_dataLabel} to ${_dbName}`)
+
     /* Verify config in cache. */
-    const exists = await _getFile(_name)
+    const exists = await _dbRead(_dbName, _dataLabel)
 
     /* Initialize result. */
     let result = null
 
-    if (exists && exists._id === _name) {
+    /* Initialize package. */
+    let pkg = null
+
+    if (exists && exists._id === _dataLabel) {
         /* Build package. */
-        const pkg = {
+        pkg = {
             ...exists,
             data: _data,
             lastUpdate: new Date().toJSON()
         }
-
-        /* Update document in database. */
-        result = await dbMain.put(pkg)
-            .catch(_errorHandler)
     } else {
         /* Build package. */
-        const pkg = {
-            _id: _name,
+        pkg = {
+            _id: _dataLabel,
             data: _data,
             dataAdded:  new Date().toJSON(),
             lastUpdate: new Date().toJSON()
         }
-
-        /* Add document to database. */
-        result = await dbMain.put(pkg)
-            .catch(_errorHandler)
     }
+
+    /* Add/update document in database. */
+    result = await _dbManager[_dbName].put(pkg)
+        .catch(_errorHandler)
 
     /* Return the result. */
     if (result) {
@@ -217,20 +215,22 @@ const _saveFile = async function (_name, _data) {
 }
 
 /**
- * @notice Retreive configuration data from database.
+ * Data Read
  *
- * @dev Read config data from our pouchdb.
+ * Read data from one of the managed PouchDb databases.
  */
-const _getFile = async function (_name) {
+const _dbRead = async function (_dbName, _dataLabel) {
+    // _addLog(`Reading ${_dataLabel} from ${_dbName}`)
+
     /* Initialize options. */
     const options = {
-        key: _name,
+        key: _dataLabel,
         include_docs: true,
         descending: true
     }
 
     /* Retrieve all docs (using `key` filter). */
-    const docs = await dbMain.allDocs(options)
+    const docs = await _dbManager[_dbName].allDocs(options)
         .catch(_errorHandler)
 
     /* Validate docs. */
@@ -246,16 +246,23 @@ const _getFile = async function (_name) {
     }
 }
 
-const _removeFile = async function (_name) {
+/**
+ * Data Delete
+ *
+ * Delete data from one of the managed PouchDb databases.
+ */
+const _dbDelete = async function (_dbName, _dataLabel) {
+    _addLog(`Deleting ${_dataLabel} from ${_dbName}`)
+
     /* Verify config in cache. */
-    const exists = await _getFile(_name)
+    const exists = await _dbRead(_dbName, _dataLabel)
 
     /* Initialize result. */
     let result = null
 
-    if (exists && exists._id === _name) {
+    if (exists && exists._id === _dataLabel) {
         /* Remove document from database. */
-        result = await dbMain.remove(exists)
+        result = await _dbManager[_dbName].remove(exists)
             .catch(_errorHandler)
     } else {
         return _errorHandler(new Error('File was NOT found.'))
@@ -269,6 +276,14 @@ const _removeFile = async function (_name) {
 }
 
 
+/*******************************************************************************
+
+  SockJS
+  https://github.com/sockjs/sockjs-client
+
+  We are using SockJS to manage all socket communications.
+
+*******************************************************************************/
 
 
 /**
@@ -302,6 +317,22 @@ const _send0penMessage = function (_msg) {
     }
 }
 
+/**
+ * Calculate SHA-512 Validation Hash
+ *
+ * NOTE Only the first 32 bytes are returned (as per Zeronet specifications).
+ */
+const _calcHash = function (_buf) {
+    /* Calculate (full) hash. */
+    const sha512 = CryptoJS.SHA512(_buf).toString(CryptoJS.enc.Hex)
+
+    /* Truncate to 32 bytes. */
+    const hash = sha512.slice(0, 64) // first 32 bytes
+
+    /* Return validation hash. */
+    return hash
+}
+
 const _handle0penMessage = async function (_msg) {
     try {
         /* Parse incoming message. */
@@ -313,19 +344,35 @@ const _handle0penMessage = async function (_msg) {
 
         /* Initialize body holder. */
         let body = null
+        let data = null
+        let dataLabel = null
+        let dbName = null
         let pkg = null
 
         switch (action.toUpperCase()) {
         case 'GETFILE':
-            // return console.log('INCOMING MSG', msg)
-            /* Verify the signature of the configuraton (content.json). */
+            /* Calculate file length. */
+            const fileLen = msg.body.length
+            console.log(`File length [ ${fileLen} ]`)
+
+            /* Calculate file verifcation hash. */
+            const fileHash = _calcHash(msg.body)
+            console.log(`File verification hash [ ${fileHash} ]`)
+
+            /* Verify the signature of the file. */
             // const isSignatureValid = await _verifyConfig(msg.config)
+
+            /* Initailize database values. */
+            dbName = 'files'
+            // dataLabel = `${msg.config.address}:index.html`
+            // data = msg.body
+
+            /* Write to database. */
+            // _dbWrite(dbName, dataLabel, data)
 
             /* Decode body. */
             body = msg.body.toString()
-            console.log('MSG.BODY', msg.body)
-            console.log('MSG.BODY STRING', msg.body.toString())
-            
+
             /* Build gatekeeper package. */
             pkg = { body }
 
@@ -336,8 +383,17 @@ const _handle0penMessage = async function (_msg) {
         case 'GETINFO':
             /* Verify the signature of the configuraton (content.json). */
             const isSignatureValid = await _verifyConfig(msg.config)
+                .catch((err) => console.error('Could NOT verify config', msg))
 
-            /* Retrieve config. */
+            /* Initailize database values. */
+            dbName = 'main'
+            dataLabel = `${msg.config.address}:content.json`
+            data = msg.config
+
+            /* Write to database. */
+            _dbWrite(dbName, dataLabel, data)
+
+            /* Format body. */
             body = `
 <h1>${isSignatureValid ? 'File Signature is VALID' : 'File Signature is INVALID'}</h1>
 <pre><code>${JSON.stringify(msg.config, null, 4)}</code></pre>
@@ -415,8 +471,7 @@ const _authRequest = async function () {
  * Websocket - Connection Opened
  */
 const _connOpen = async function () {
-    console.info('0PEN connected successfully.')
-
+    _addLog('0PEN connected successfully.')
 
     /* Build package. */
     const pkg = {
@@ -507,10 +562,28 @@ const _verifyConfig = async function(_config) {
     })
 }
 
+/**
+ * Zite Search
+ *
+ * Handles ALL submissions from the Zite | Search input.
+ */
 const _ziteSearch = function () {
     /* Retrieve search query. */
     const query = inpZiteSearch.val()
-    console.log('QUERY IS', query)
+
+    _addLog(`User submitted a query for [ ${query} ]`)
+
+    /**
+     * Reset Search
+     */
+    const _resetSearch = () => {
+        /* Clear search input. */
+        inpZiteSearch.val('')
+
+        /* Remove focus from search elements. */
+        inpZiteSearch.blur()
+        btnZiteSearch.blur()
+    }
 
     /* Initialize holders. */
     let action = null
@@ -518,7 +591,67 @@ const _ziteSearch = function () {
     let innerPath = null
     let pkg = null
 
-    if (query.slice(0, 7).toUpperCase() === 'GETINFO' && query.length > 8) {
+    /* Basic validation. */
+    if (!query || query === '' || !query.length) {
+        return
+    }
+
+    if (query.slice(0, 10).toUpperCase() === 'DEBUG.MENU') {
+        /* Show ADMIN permission modal. */
+        $('#modalDebug').modal({
+            backdrop: 'static',
+            keyboard: false
+        })
+
+        /* Enable test buttons. */
+        $('.btnModalDebugTest1').click(() => {
+            inpZiteSearch.val('getinfo:1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF')
+            _ziteSearch()
+        })
+        $('.btnModalDebugTest2').click(() => {
+            inpZiteSearch.val('getfile:1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF:index.html')
+            _ziteSearch()
+        })
+        $('.btnModalDebugDbDumps').click(async () => {
+            /* Initialize options. */
+            const options = {
+                include_docs: true
+            }
+
+            /* Initialize holders. */
+            let docs = null
+            let body = null
+
+            /* Process MAIN database. */
+            docs = await _dbManager['main'].allDocs(options)
+                .catch(_errorHandler)
+            body = `<h1>Main</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
+
+            /* Process FILES database. */
+            docs = await _dbManager['files'].allDocs(options)
+                .catch(_errorHandler)
+            body += `<hr /><h1>Files</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
+
+            /* Process OPTIONAL database. */
+            docs = await _dbManager['optional'].allDocs(options)
+                .catch(_errorHandler)
+            body += `<hr /><h1>Optional Files</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
+
+            /* Process MEDIA database. */
+            docs = await _dbManager['media'].allDocs(options)
+                .catch(_errorHandler)
+            body += `<hr /><h1>Media</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
+
+            /* Build gatekeeper package. */
+            const pkg = { body }
+
+            /* Send package to gatekeeper. */
+            _gatekeeperMsg(pkg)
+        })
+
+        /* Reset search. */
+        _resetSearch()
+    } else if (query.slice(0, 7).toUpperCase() === 'GETINFO' && query.length > 8) {
         /* Retrieve destination. */
         dest = query.slice(8)
 
@@ -561,12 +694,8 @@ const _ziteSearch = function () {
 
     /* Send package. */
     if (_send0penMessage(pkg)) {
-        /* Reset input. */
-        inpZiteSearch.val('')
-
-        /* Remove focus. */
-        inpZiteSearch.blur()
-        btnZiteSearch.blur()
+        /* Reset search. */
+        _resetSearch()
     }
 }
 
@@ -583,6 +712,9 @@ inpZiteSearch.on('keyup', function (e) {
     }
 })
 
+/**
+ * Update Location Details
+ */
 const _updateLocDetails = function () {
     /* Basic web bot (search spider) filter. */
     if (!navigator.userAgent.match(/bot|spider/i)) {
@@ -604,31 +736,12 @@ const _updateLocDetails = function () {
     }
 }
 
-
-// RUN TESTS
-const _runDbTests = async function () {
-    // console.log('SAVING...', await _saveFile('settings', { autoUpdate: false, gpMode: true }))
-    // console.log('SAVING...', await _saveFile('content.json', { title: 'Even Better Zite!' }))
-
-    console.log('SETTINGS', await _getFile('settings'))
-    // console.log('SAMPLE (content.json)', await _getFile('content.json'))
-
-    // console.log('REMOVING...', await _removeFile('settings'))
-}
-
-const _run0penTests = async function () {
-    console.log('Do something!');
-}
-
-
-
-/* jQuery says it's time to boogie! */
+/**
+ * jQuery says it's time to boogie!
+ */
 $(document).ready(function () {
     /* Send an empty message to the gatekeeper to initialize. */
-    _authGatekeeper()
-
-    $('.btnDbTests').click(_runDbTests)
-    $('.btn0penTests').click(_run0penTests)
+    authGatekeeper()
 
     /* Verify NO parent window! */
     // if (window.self === window.top) {
