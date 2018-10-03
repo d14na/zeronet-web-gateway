@@ -99,6 +99,9 @@ window.addEventListener('message', function (_event) {
 
         /* Update the frame's html body. */
         $('body').html(body)
+
+        /* Scroll to the top. */
+        $('html, body').scrollTop(25)
     } catch (e) {
         /* Build error. */
         const msg = {

@@ -111,7 +111,10 @@ const _gatekeeperMsg = function (_message={}) {
 /**
  * Authorize Gatekeeper
  */
-const authGatekeeper = function () {
+const _authGatekeeper = async function () {
+    /* Show "connecting..." notification. */
+    await _wait('Initailizing New Session', 'This will only take a moment.', 'Please wait...')
+
     /* Validate application initialization. */
     if (!gateReady) {
         setTimeout(function () {
@@ -295,31 +298,69 @@ const _dbDelete = async function (_dbName, _dataLabel) {
  * NOTE The closest (available) server can be reached by querying the DNS list:
  *      https://0pen.0net.io
  */
-const _connect = function () {
-    /* Create a new Socket JS connection . */
-    conn = new SockJS(WS_ENDPOINT)
+const _connect = async function () {
+    /* Verify that we are NOT already connected. */
+    if (!conn || conn.readyState !== 1) {
+        /* Show "connecting..." notification. */
+        await _wait('Connecting to 0PEN', 'This will only take a moment.', 'Please wait...')
 
-    /* Initialize event handlers. */
-    conn.onopen = _connOpen
-    conn.onmessage = _connMessage
-    conn.onclose = _connClose
+        /* Create a new Socket JS connection . */
+        conn = new SockJS(WS_ENDPOINT)
+
+        /* Initialize event handlers. */
+        conn.onopen = _connOpen
+        conn.onmessage = _connMessage
+        conn.onclose = _connClose
+    }
 }
 
 /**
  * Modal Alert Handler
  */
 const _alert = function (_title, _subtitle, _body, _success) {
-    /* Show ADMIN permission modal. */
+    /* Clear open modals. */
+    _clearModals()
+
+    /* Show ALERT permission modal. */
     $('#modalAlert').modal({
-        backdrop: 'static',
-        keyboard: false
+        backdrop: true,
+        keyboard: true
     })
+
+    /* Set modal details. */
     $('.modalAlertTitle').html(_title)
     $('.modalAlertSubtitle').html(_subtitle)
     $('.modalAlertBody').html(_body)
 
     /* Return success. */
     return _success
+}
+
+/**
+ * Modal Wait Handler
+ */
+const _wait = function (_title, _subtitle, _body = '', _success = false) {
+    /* Clear open modals. */
+    _clearModals()
+
+    /* Show WAIT permission modal. */
+    $('#modalWait').modal({
+        backdrop: true,
+        keyboard: true
+    })
+
+    /* Set modal details. */
+    $('.modalWaitTitle').html(_title)
+    $('.modalWaitSubtitle').html(_subtitle)
+    $('.modalWaitBody').html(_body)
+
+    return new Promise((_resolve, _reject) => {
+        // NOTE Wait a lil' bit before displaying "intermittent" modal.
+        setTimeout(() => {
+            /* Resolve success. */
+            _resolve(_success)
+        }, 500)
+    })
 }
 
 /**
@@ -331,13 +372,14 @@ const _send0penMessage = function (_msg) {
 
         return true
     } else {
-        /* Show alert. */
-        return _alert(
-            'Oops! Connection Error!',
-            '0PEN is disconnected!',
-            'Please try your request again...',
-            false
-        )
+        /* Attempt to re-connect. */
+        _connect()
+
+        /* Wait a few secs, then attempt to re-connect. */
+        setTimeout(() => {
+            /* Attempt to re-connect. */
+            _connect()
+        }, 3000)
     }
 }
 
@@ -353,6 +395,9 @@ const _imgConverter = function (input) { // fn BLOB => Binary => Base64 ?
 }
 
 const _handle0penMessage = async function (_msg) {
+    /* Hide ALL modal windows. */
+    _clearModals()
+
     try {
         /* Parse incoming message. */
         let msg = JSON.parse(_msg)
@@ -363,8 +408,27 @@ const _handle0penMessage = async function (_msg) {
             return _addLog(`Error processing [ ${JSON.stringify(msg)} ]`)
         }
 
+        /* Validate response. */
+        if (msg.error) {
+            /* Show alert. */
+            return _alert(
+                'Oops! Request Error!',
+                msg.error,
+                'Please try your request again...',
+                false
+            )
+        }
+
+        /* Initialize action. */
+        let action = null
+
         /* Retrieve the action. */
-        const action = msg.action
+        action = msg.action
+
+        /* Validate search. */
+        if (msg.search) {
+            action = 'SEARCH'
+        }
 
         /* Initialize body holder. */
         let body = null
@@ -547,6 +611,9 @@ const _handle0penMessage = async function (_msg) {
             // $('.location').html(`<span class="badge badge-info">${identity}</span>`)
             // _updateLocDetails()
 
+            /* Clear modals. */
+            _clearModals()
+
             break
         default:
             // nothing to do here
@@ -680,11 +747,14 @@ const _verifyConfig = async function(_config) {
  *
  * Handles ALL submissions from the Zite | Search input.
  */
-const _ziteSearch = function () {
+const _ziteSearch = async function () {
     /* Retrieve search query. */
     const query = inpZiteSearch.val()
 
     _addLog(`User submitted a query for [ ${query} ]`)
+
+    /* Show "connecting..." notification. */
+    await _wait('Zitetag | Search', `Processing request for [ <strong class="text-primary">${query}</strong> ]`, 'Please wait...')
 
     /**
      * Reset Search
@@ -711,6 +781,9 @@ const _ziteSearch = function () {
     }
 
     if (query.slice(0, 10).toUpperCase() === 'DEBUG.MENU') {
+        /* Clear open modals. */
+        _clearModals()
+
         /* Show ADMIN permission modal. */
         $('#modalDebug').modal({
             backdrop: 'static',
@@ -718,10 +791,6 @@ const _ziteSearch = function () {
         })
 
         /* Enable test buttons. */
-        $('.btnModalDebugTest1').click(() => {
-            inpZiteSearch.val('getinfo:1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF')
-            _ziteSearch()
-        })
         $('.btnModalDebugTest2').click(() => {
             inpZiteSearch.val('getfile:1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF:index.html')
             _ziteSearch()
@@ -878,11 +947,29 @@ const _updateLocDetails = function () {
 }
 
 /**
+ * Clear ALL (Escapable) Modals
+ */
+const _clearModals = function () {
+    $('#modalAlert').modal('hide')
+    $('#modalDebug').modal('hide')
+    $('#modalWait').modal('hide')
+}
+
+/**
  * jQuery says it's time to boogie!
  */
 $(document).ready(function () {
     /* Send an empty message to the gatekeeper to initialize. */
-    authGatekeeper()
+    _authGatekeeper()
+
+    /* Add keyboard (esc) detection. */
+    $(document).keyup(function (e) {
+        /* Hide ALL modal windows. */
+        if (e.keyCode === 27) {
+            /* Clear modals. */
+            _clearModals(0)
+        }
+    })
 
     /* Verify NO parent window! */
     // if (window.self === window.top) {
@@ -911,7 +998,7 @@ $(document).ready(function () {
     //         alert('Desktop notifications not available in your browser. Try Chromium.');
     //     }
     // } else {
-    //     console.info('P0rtal is contained within another window. Escaping now!')
+    //     console.info('0net is contained within another window. Escaping now!')
     //
     //     window.open(window.location.toString(), '_top')
     // 	document.write('Please wait, now escaping from iframe...')
