@@ -305,22 +305,39 @@ const _connect = function () {
     conn.onclose = _connClose
 }
 
+/**
+ * Modal Alert Handler
+ */
+const _alert = function (_title, _subtitle, _body, _success) {
+    /* Show ADMIN permission modal. */
+    $('#modalAlert').modal({
+        backdrop: 'static',
+        keyboard: false
+    })
+    $('.modalAlertTitle').html(_title)
+    $('.modalAlertSubtitle').html(_subtitle)
+    $('.modalAlertBody').html(_body)
+
+    /* Return success. */
+    return _success
+}
+
+/**
+ * 0PEN Message Handler
+ */
 const _send0penMessage = function (_msg) {
     if (conn && conn.readyState === 1) {
         conn.send(JSON.stringify(_msg))
 
         return true
     } else {
-        /* Show ADMIN permission modal. */
-        $('#modalAlert').modal({
-            backdrop: 'static',
-            keyboard: false
-        })
-        $('.modalAlertTitle').html('Oops! Connection Error!')
-        $('.modalAlertSubtitle').html('0PEN is disconnected!')
-        $('.modalAlertBody').html('Please try your request again...')
-
-        return false
+        /* Show alert. */
+        return _alert(
+            'Oops! Connection Error!',
+            '0PEN is disconnected!',
+            'Please try your request again...',
+            false
+        )
     }
 }
 
@@ -471,6 +488,17 @@ const _handle0penMessage = async function (_msg) {
             /* Verify the signature of the configuraton (content.json). */
             const isSignatureValid = await _verifyConfig(msg.config)
                 .catch((err) => console.error('Could NOT verify config', msg))
+
+            /* Validate signature. */
+            if (!isSignatureValid) {
+                /* Show alert. */
+                return _alert(
+                    'Oops! Validation Error!',
+                    'Failed to validate signature!',
+                    'Please try your request again...',
+                    false
+                )
+            }
 
             /* Initailize database values. */
             dbName = 'main'
@@ -640,12 +668,10 @@ const _verifyConfig = async function(_config) {
     _config = escapeUnicode(_config)
 
     return new Promise((_resolve, _reject) => {
-        $.getScript('../libs/bitcoin-message.js', () => {
-            /* Verify the Bitcoin signature. */
-            const isValid = BitcoinMessage.verify(_config, address, signature)
+        /* Verify the Bitcoin signature. */
+        const isValid = BitcoinMessage.verify(_config, address, signature)
 
-            _resolve(isValid)
-        })
+        _resolve(isValid)
     })
 }
 
@@ -675,6 +701,7 @@ const _ziteSearch = function () {
     /* Initialize holders. */
     let action = null
     let dest = null
+    let infoHash = null
     let innerPath = null
     let pkg = null
 
@@ -742,15 +769,6 @@ const _ziteSearch = function () {
 
         /* Reset search. */
         _resetSearch()
-    } else if (query.slice(0, 7).toUpperCase() === 'GETINFO' && query.length > 8) {
-        /* Retrieve destination. */
-        dest = query.slice(8)
-
-        /* Set action. */
-        action = 'GETINFO'
-
-        /* Build package. */
-        pkg = { action, dest }
     } else if (query.slice(0, 7).toUpperCase() === 'GETFILE' && query.length > 10) {
         /* Retrieve target. */
         const target = query.slice(8)
@@ -776,11 +794,43 @@ const _ziteSearch = function () {
         /* Build package. */
         pkg = { action, dest, innerPath: 'index.html' }
     } else {
-        /* Set action. */
-        action = 'SEARCH'
+        // TEMP Test for public key
+        if (query.slice(0, 1) === '1' && (query.length === 33 || query.length === 34)) {
+            /* Retrieve destination. */
+            dest = query
 
-        /* Build package. */
-        pkg = { action, query }
+            /* Set action. */
+            action = 'GETINFO'
+
+            /* Build package. */
+            pkg = { action, query }
+        // TEMP Test for info hash
+        } else if (query.length === 40) {
+            /* Retrieve info hash. */
+            infoHash = query
+
+            /* Set action. */
+            action = 'GETINFO'
+
+            /* Build package. */
+            pkg = { action, query }
+        // TEMP Test for magnet link
+        } else if (query.slice(0, 20) === 'magnet:?xt=urn:btih:') {
+            /* Retrieve info hash. */
+            infoHash = query.slice(20, 60)
+
+            /* Set action. */
+            action = 'GETINFO'
+
+            /* Build package. */
+            pkg = { action, query }
+        } else {
+            /* Set action. */
+            action = 'GETINFO'
+
+            /* Build package. */
+            pkg = { action, query }
+        }
     }
 
     /* Send package. */
