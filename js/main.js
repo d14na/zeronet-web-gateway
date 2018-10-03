@@ -311,10 +311,28 @@ const _send0penMessage = function (_msg) {
 
         return true
     } else {
-        alert('0PEN is disconnected! Please try your request again...')
+        /* Show ADMIN permission modal. */
+        $('#modalAlert').modal({
+            backdrop: 'static',
+            keyboard: false
+        })
+        $('.modalAlertTitle').html('Oops! Connection Error!')
+        $('.modalAlertSubtitle').html('0PEN is disconnected!')
+        $('.modalAlertBody').html('Please try your request again...')
 
         return false
     }
+}
+
+const _imgConverter = function (input) { // fn BLOB => Binary => Base64 ?
+    let uInt8Array = new Uint8Array(input)
+    let i = uInt8Array.length
+
+    let biStr = [] //new Array(i);
+    while (i--) { biStr[i] = String.fromCharCode(uInt8Array[i])  }
+    let base64 = window.btoa(biStr.join(''))
+
+    return base64
 }
 
 const _handle0penMessage = async function (_msg) {
@@ -420,13 +438,16 @@ const _handle0penMessage = async function (_msg) {
                 data = body
 
                 /* Write to database. */
-                // _dbWrite(dbName, dataLabel, data)
+                _dbWrite(dbName, dataLabel, data)
 
                 /* Decode body. */
                 switch (fileExt.toUpperCase()) {
                 case 'HTM':
                 case 'HTML':
                     body = body.toString()
+                    break
+                case 'PNG':
+                    body = `<img class="img-fluid" src="data:image/png;base64,${_imgConverter(body)}" width="300">`
                     break
                 default:
                     // NOTE Leave as buffer (for binary files).

@@ -194,26 +194,31 @@
     </div>
 </div>
 
-<div id="modalMain" class="modal fade">
+<div id="modalAlert" class="modal fade">
     <div class="modal-dialog modal-dialog-vertical-center" role="document">
         <div class="modal-content bd-0 tx-14">
             <div class="modal-header">
-                <h6 class="tx-18 mg-b-0 tx-uppercase tx-bold text-danger modalMainTitle">
+                <h6 class="tx-18 mg-b-0 tx-uppercase tx-bold text-danger modalAlertTitle">
                     <!-- title placeholder -->
                 </h6>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
 
             <div class="modal-body pd-25">
-                <h5 class="lh-3 mg-b-20 tx-inverse hover-primary modalMainSubtitle">
+                <h5 class="lh-3 mg-b-20 tx-inverse hover-primary modalAlertSubtitle">
                     <!-- subtitle placeholder -->
                 </h5>
 
-                <!-- body placeholder -->
+                <div class="modalAlertBody">
+                    <!-- body placeholder -->
+                </div>
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary btnModalMainAction">Do Something!</button>
-                <button type="button" class="btn btn-danger btnModalMainCancel" data-dismiss="modal">Cancel</button>
+                <!-- <button type="button" class="btn btn-primary btnModalAlertAction">Action</button> -->
+                <button type="button" class="btn btn-secondary btnModalAlertCancel" data-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -226,6 +231,9 @@
                 <h6 class="tx-18 mg-b-0 tx-uppercase tx-bold text-danger">
                     DEBUGGING MENU
                 </h6>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
 
             <div class="modal-body pd-25">
@@ -269,10 +277,6 @@
 <script src="//cdn.0net.io/libs/moment/2.22.2/js/moment.min.js"></script>
 <script src="//cdn.0net.io/libs/crypto-js/3.1.9/js/crypto-js.min.js"></script>
 <script src="./libs/calc-hash.js" type="text/javascript"></script>
-
-<script>
-console.log('CALC HASH', calcHash);
-</script>
 
 <!-- Main JS Library -->
 <script src="./js/main.js" type="text/javascript"></script>
