@@ -317,64 +317,130 @@ const _send0penMessage = function (_msg) {
     }
 }
 
-/**
- * Calculate SHA-512 Validation Hash
- *
- * NOTE Only the first 32 bytes are returned (as per Zeronet specifications).
- */
-const _calcHash = function (_buf) {
-    /* Calculate (full) hash. */
-    const sha512 = CryptoJS.SHA512(_buf).toString(CryptoJS.enc.Hex)
-
-    /* Truncate to 32 bytes. */
-    const hash = sha512.slice(0, 64) // first 32 bytes
-
-    /* Return validation hash. */
-    return hash
-}
-
 const _handle0penMessage = async function (_msg) {
     try {
         /* Parse incoming message. */
         let msg = JSON.parse(_msg)
         console.log('Received', msg)
 
+        /* Validate message. */
+        if (!msg) {
+            return _addLog(`Error processing [ ${JSON.stringify(msg)} ]`)
+        }
+
         /* Retrieve the action. */
         const action = msg.action
 
         /* Initialize body holder. */
         let body = null
+        let config = null
         let data = null
         let dataLabel = null
         let dbName = null
+        let dest = null
+        let files = null
+        let fileExt = null
+        let innerPath = null
+        let isValid = null
         let pkg = null
+        let target = null
 
         switch (action.toUpperCase()) {
         case 'GETFILE':
-            /* Calculate file length. */
-            const fileLen = msg.body.length
-            console.log(`File length [ ${fileLen} ]`)
+            /* Validate message destination. */
+            if (msg.dest) {
+                /* Retrieve destination. */
+                dest = msg.dest
+            } else {
+                return _addLog(`Problem retrieving destination for [ ${JSON.stringify(msg)} ]`)
+            }
+
+            /* Validate dest. */
+            if (!dest || dest.slice(0, 1) !== '1' || (dest.length !== 33 && dest.length !== 34)) {
+                return _addLog(`${dest} is an invalid public key.`)
+            }
+
+            config = await _dbRead('main', `${dest}:content.json`)
+            console.log('FOUND CONFIG', config)
+
+            /* Validate config. */
+            if (!config || !config.data || !config.data.files) {
+                return _addLog('Problem retrieving config (content.json) from database.')
+            }
+
+            /* Retrieve inner path. */
+            innerPath = msg.innerPath
+
+            /* Parse file extension. */
+            fileExt = innerPath.split('.').pop()
+
+            /* Validate inner path. */
+            if (!innerPath) {
+                return _addLog(`Problem retrieving inner path [ ${innerPath} ]`)
+            }
+
+            /* Retrieve files list. */
+            files = config.data.files
+
+            /* Retrieve config size. */
+            const configSize = files[innerPath].size
+
+            /* Retrieve config hash. */
+            const configHash = files[innerPath].sha512
+            console.log(`${innerPath} size/hash`, configSize, configHash)
+
+            /* Parse body. */
+            if (msg.body && msg.body.type && msg.body.type === 'Buffer') {
+                body = Uint8Array.from(msg.body.data)
+            } else {
+                body = msg.body
+            }
+
+            /* Calculate file size. */
+            const fileSize = parseInt(body.length)
+            console.log(`File length [ ${fileSize} ]`)
 
             /* Calculate file verifcation hash. */
-            const fileHash = _calcHash(msg.body)
+            const fileHash = calcHash(body)
             console.log(`File verification hash [ ${fileHash} ]`)
 
             /* Verify the signature of the file. */
-            // const isSignatureValid = await _verifyConfig(msg.config)
+            if (configSize === fileSize && configHash === fileHash) {
+                isValid = true
+            } else {
+                isValid = false
+            }
 
-            /* Initailize database values. */
-            dbName = 'files'
-            // dataLabel = `${msg.config.address}:index.html`
-            // data = msg.body
+            _addLog(`${innerPath} validation hash is ${isValid}'`)
 
-            /* Write to database. */
-            // _dbWrite(dbName, dataLabel, data)
+            if (isValid) {
+                /* Initailize database values. */
+                dbName = 'files'
+                dataLabel = `${dest}:${innerPath}`
+                data = body
 
-            /* Decode body. */
-            body = msg.body.toString()
+                /* Write to database. */
+                // _dbWrite(dbName, dataLabel, data)
 
-            /* Build gatekeeper package. */
-            pkg = { body }
+                /* Decode body. */
+                switch (fileExt.toUpperCase()) {
+                case 'HTM':
+                case 'HTML':
+                    body = body.toString()
+                    break
+                default:
+                    // NOTE Leave as buffer (for binary files).
+                }
+
+                /* Build gatekeeper package. */
+                pkg = { body }
+            } else {
+                /* Generate error body. */
+                body = `${innerPath} file verification FAILED!`
+
+                /* Build gatekeeper package. */
+                pkg = { body }
+            }
 
             /* Send package to gatekeeper. */
             _gatekeeperMsg(pkg)
@@ -612,10 +678,14 @@ const _ziteSearch = function () {
             inpZiteSearch.val('getfile:1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF:index.html')
             _ziteSearch()
         })
+        $('.btnModalDebugTest3').click(() => {
+            inpZiteSearch.val('getfile:1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF:images/screen-01.png')
+            _ziteSearch()
+        })
         $('.btnModalDebugDbDumps').click(async () => {
             /* Initialize options. */
             const options = {
-                include_docs: true
+                // include_docs: true
             }
 
             /* Initialize holders. */
