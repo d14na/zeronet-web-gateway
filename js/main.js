@@ -8,8 +8,16 @@ let conn = null
 /* Initialize Gatekeeper's Ready flag. */
 let gateReady = false
 
-/* Initialize peer id. */
+/* Initialize Request Id. */
+let requestId = 0
+
+/* Initialize requests manager. */
+let requestMgr = {}
+
+/* Initialize global client details. */
 let peerId = null
+let account = null
+let identity = null
 
 /* Initialize a no-op stub. */
 function noop() {}
@@ -20,6 +28,10 @@ const gatekeeper = $('#gatekeeper')
 
 /* Initialize the gatekeeper's content window. */
 const contentWindow = gatekeeper[0].contentWindow
+
+/* Initialize (global) constants. */
+BLOCK_HASH_LENGTH = 20
+CHUNK_LENGTH = 16384
 
 /**
  * Add Log Entry
@@ -39,8 +51,37 @@ const _addLog = function (_message) {
 /**
  * Error Handler
  */
-const _errorHandler = function (_err) {
-    throw new Error(_err)
+const _errorHandler = function (_err, _critical = false) {
+    /* Handle critical errors with a throw (terminate application). */
+    if (_critical) {
+        throw new Error(_err)
+    } else {
+        console.error(_err)
+    }
+}
+
+/**
+ * Retrieve Action from Requests Manager
+ */
+const _getAction = function (_msg) {
+    /* Initialize action. */
+    let action = null
+
+    /* Retrieve request id. */
+    const requestId = _msg.requestId
+
+    if (requestId && requestMgr[requestId]) {
+        /* Retrieve action. */
+        action = requestMgr[requestId].action
+
+        /* Remove request from manager. */
+        // FIXME Verify that we do not need to persist this request
+        //       other than to retrieve the ACTION
+        delete requestMgr[requestId]
+    }
+
+    /* Return the action. */
+    return action
 }
 
 /**
@@ -167,10 +208,10 @@ _dbManager['files'] = new PouchDB('files')
 //      see https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Browser_storage_limits_and_eviction_criteria
 _dbManager['optional'] = new PouchDB('optional')
 
-/* Initialize PouchDB for non-zite media (eg. downloaded or torrent data). */
+/* Initialize PouchDB for non-zite data blokcs (eg. downloaded or torrent data). */
 // NOTE Separate db is used in the event of an LRU total database deletion.
 //      see https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Browser_storage_limits_and_eviction_criteria
-_dbManager['media'] = new PouchDB('media')
+_dbManager['blocks'] = new PouchDB('blocks')
 
 /**
  * Data Write
@@ -268,7 +309,7 @@ const _dbDelete = async function (_dbName, _dataLabel) {
         result = await _dbManager[_dbName].remove(exists)
             .catch(_errorHandler)
     } else {
-        return _errorHandler(new Error('File was NOT found.'))
+        return _errorHandler('File was NOT found.', false)
     }
 
     /* Return the result. */
@@ -368,7 +409,21 @@ const _wait = function (_title, _subtitle, _body = '', _success = false) {
  */
 const _send0penMessage = function (_msg) {
     if (conn && conn.readyState === 1) {
-        conn.send(JSON.stringify(_msg))
+        /* Increment request id. */
+        // NOTE An Id of (0) will return FALSE on validation
+        requestId++
+
+        /* Add new request id to message. */
+        const msg = {
+            requestId,
+            ..._msg
+        }
+
+        /* Add new request to requests manager. */
+        requestMgr[requestId] = msg
+
+        /* Send serialized message. */
+        conn.send(JSON.stringify(msg))
 
         return true
     } else {
@@ -412,7 +467,7 @@ const _handle0penMessage = async function (_msg) {
         if (msg.error) {
             /* Show alert. */
             return _alert(
-                'Oops! Request Error!',
+                'Zitetag | Search Error',
                 msg.error,
                 'Please try your request again...',
                 false
@@ -422,15 +477,20 @@ const _handle0penMessage = async function (_msg) {
         /* Initialize action. */
         let action = null
 
-        /* Retrieve the action. */
-        action = msg.action
+        /* Retrieve the action from requests manager. */
+        action = _getAction(msg)
 
-        /* Validate search. */
+        /* Handle search condition. */
         if (msg.search) {
             action = 'SEARCH'
         }
 
-        /* Initialize body holder. */
+        /* Validate action. */
+        if (!action) {
+            return _errorHandler(`No ACTION was found for [ ${JSON.stringify(msg)} ]`, false)
+        }
+
+        /* Initialize body holders. */
         let body = null
         let config = null
         let data = null
@@ -439,12 +499,34 @@ const _handle0penMessage = async function (_msg) {
         let dest = null
         let files = null
         let fileExt = null
+        let info = null
         let innerPath = null
         let isValid = null
         let pkg = null
         let target = null
 
         switch (action.toUpperCase()) {
+        case 'AUTH':
+            /* Retrieve the account. */
+            account = msg.account
+
+            /* Format body. */
+            body = `
+<h3 class="badge badge-info mt-1">My Peer Id: ${peerId}</h3>
+<h3 class="badge badge-info">My Location: ${identity}</h3>
+<h3 class="badge badge-info">My Account: ${account}</h3>
+            `
+
+            /* Build gatekeeper package. */
+            pkg = { body }
+
+            /* Send package to gatekeeper. */
+            _gatekeeperMsg(pkg)
+
+            /* Clear modals. */
+            _clearModals()
+
+            break
         case 'GETFILE':
             /* Validate message destination. */
             if (msg.dest) {
@@ -549,34 +631,127 @@ const _handle0penMessage = async function (_msg) {
 
             break
         case 'GETINFO':
-            /* Verify the signature of the configuraton (content.json). */
-            const isSignatureValid = await _verifyConfig(msg.config)
-                .catch((err) => console.error('Could NOT verify config', msg))
+            if (msg.config) {
+                /* Verify the signature of the configuraton (content.json). */
+                const isSignatureValid = await _verifyConfig(msg.config)
+                    .catch((err) => console.error('Could NOT verify config', msg))
 
-            /* Validate signature. */
-            if (!isSignatureValid) {
-                /* Show alert. */
-                return _alert(
-                    'Oops! Validation Error!',
-                    'Failed to validate signature!',
-                    'Please try your request again...',
-                    false
-                )
+                /* Validate signature. */
+                if (!isSignatureValid) {
+                    /* Show alert. */
+                    return _alert(
+                        'Oops! Validation Error!',
+                        'Failed to validate signature!',
+                        'Please try your request again...',
+                        false
+                    )
+                }
+
+                /* Initailize database values. */
+                dbName = 'main'
+                dataLabel = `${msg.config.address}:content.json`
+                data = msg.config
+
+                /* Write to database. */
+                _dbWrite(dbName, dataLabel, data)
+
+                /* Format body. */
+                body = `
+    <h1>${isSignatureValid ? 'File Signature is VALID' : 'File Signature is INVALID'}</h1>
+    <pre><code>${JSON.stringify(msg.config, null, 4)}</code></pre>
+                `
+            } else if (msg.info) {
+                /* Initailize database values. */
+                dbName = 'main'
+                dataLabel = `${msg.info.infoHash}:torrent`
+                data = msg.info
+
+                /* Validate data. */
+                if (data && data.torrentInfo) {
+                    /* Retrieve torrent info. */
+                    const torrentInfo = data.torrentInfo
+                    console.log('TORRENT INFO', torrentInfo)
+
+                    /* Validate torrent info. */
+                    if (!torrentInfo) {
+                        return _errorHandler(`No torrent info found in [ ${JSON.stringify(msg.info)} ]`, false)
+                    }
+
+                    /* Initialize body (display). */
+                    body = '<pre><code>'
+
+                    /* Body header. */
+                    body += `<h3>${dataLabel}</h3><hr />`
+
+                    /* Convert name to (readable) string. */
+                    const torrentName = Buffer.from(torrentInfo['name']).toString()
+                    body += `<h3>${torrentName}</h3>`
+
+                    /* Retrieve the torrent's files. */
+                    const files = torrentInfo['files']
+
+                    /* Initialize file counter. */
+                    let fileCounter = 0
+
+                    /* Process the individual files. */
+                    for (let file of files) {
+                        /* Convert file path to (readable) string. */
+                        const filepath = Buffer.from(file.path[0], 'hex').toString()
+
+                        body += `<br />    #${++fileCounter}: ${filepath} { size: ${file.length} bytes }`
+                    }
+
+                    /* Retrieve torrent blocks. */
+                    const blocks = Buffer.from(torrentInfo['pieces'])
+                    body += '<br /><hr />'
+                    body += `<br />    ALL Hash Blocks [ length: ${blocks.length} ]`
+                    body += `<br /><textarea>${blocks.toString('hex')}</textarea>`
+
+                    /* Retrieve the block length. */
+                    const blockLength = parseInt(torrentInfo['piece length'])
+                    body += `<br />    Block Length   : ${blockLength} bytes`
+
+                    /* Calculate the number of hashes/blocks. */
+                    const numBlocks = blocks.length / BLOCK_HASH_LENGTH
+                    body += '<br /><hr />'
+                    body += `<br />    # Total Blocks : ${numBlocks}`
+
+                    const numBlockChunks = parseInt(blockLength / CHUNK_LENGTH)
+                    body += `<br />    # of Chunks per Block [ ${numBlockChunks} ]`
+
+                    body += '<br /><hr />'
+
+                    /* Process the hash list. */
+                    for (let i = 0; i < numBlocks; i++) {
+                        /* Calculate the hash start. */
+                        const start = (i * BLOCK_HASH_LENGTH)
+
+                        /* Calculate the hash end. */
+                        const end = (i * BLOCK_HASH_LENGTH) + BLOCK_HASH_LENGTH
+
+                        /* Retrieve the block's hash. */
+                        const buf = blocks.slice(start, end)
+
+                        /* Convert buffer to hex. */
+                        const hash = Buffer.from(buf).toString('hex')
+                        body += `<br />        Hash Block #${i}: ${hash}`
+                    }
+
+                    /* Finalize body (display). */
+                    body += '</code></pre>'
+
+                    /* Write to database. */
+                    // _dbWrite(dbName, dataLabel, data)
+                } else if (data) {
+                    return // FIXME We may not implement this report
+                    /* Format body. */
+                    body = `<pre><code>
+<h3>${dataLabel}</h3>
+<hr />
+${JSON.stringify(data, null, 4)}
+                    </code></pre>`
+                }
             }
-
-            /* Initailize database values. */
-            dbName = 'main'
-            dataLabel = `${msg.config.address}:content.json`
-            data = msg.config
-
-            /* Write to database. */
-            _dbWrite(dbName, dataLabel, data)
-
-            /* Format body. */
-            body = `
-<h1>${isSignatureValid ? 'File Signature is VALID' : 'File Signature is INVALID'}</h1>
-<pre><code>${JSON.stringify(msg.config, null, 4)}</code></pre>
-            `
 
             /* Build gatekeeper package. */
             pkg = { body }
@@ -598,18 +773,28 @@ const _handle0penMessage = async function (_msg) {
             break
         case 'WHOAMI':
             /* Retrieve the identity. */
-            const identity = msg.identity
+            identity = msg.identity
+
+            /* Authorize connection. */
+            _authRequest(identity)
 
             /* Calculate peer id. */
             peerId = CryptoJS.SHA1(identity)
 
-            /* Update peer id on UI. */
-            $('.peerId').html(`<span class="badge badge-info mt-1">PID: ${peerId}</span>`)
-
             /* Update the location display. */
-            $('.location').html(`<h6 class="text-info">${identity}</h6>`)
-            // $('.location').html(`<span class="badge badge-info">${identity}</span>`)
             // _updateLocDetails()
+
+            /* Format body. */
+            body = `
+<h3 class="badge badge-info mt-1">My Peer Id: ${peerId}</h3>
+<h3 class="badge badge-info">My Location: ${identity}</h3>
+            `
+
+            /* Build gatekeeper package. */
+            pkg = { body }
+
+            /* Send package to gatekeeper. */
+            _gatekeeperMsg(pkg)
 
             /* Clear modals. */
             _clearModals()
@@ -618,32 +803,30 @@ const _handle0penMessage = async function (_msg) {
         default:
             // nothing to do here
         }
-    } catch (e) {
-        _errorHandler(e)
+    } catch (_err) {
+        _errorHandler(_err, false)
     }
 }
 
-const _authRequest = async function () {
+const _authRequest = async function (_identity) {
     /* Initialize network protocol. */
     const network = '0NET-TLR' // 0NET: TrustLess Republic
-
-    /* Initialize ip address & port. */
-    const address = '192.168.1.1:11337'
 
     /* Initialize nonce. */
     const nonce = moment().unix()
 
-    const proof = `${network}:${address}:${nonce}`
+    const proof = `${network}:${_identity}:${nonce}`
     console.info('Generated authentication proof', proof)
 
-    const signedProof = await signAuth(proof)
-    console.info('Signed proof', signedProof)
+    /* Set action. */
+    const action = 'AUTH'
+
+    /* Retrieve signed proof. */
+    const sig = await signAuth(proof)
+    console.info('Signed proof', sig)
 
     /* Build package. */
-    const pkg = {
-        action: 'AUTH',
-        sig: signedProof
-    }
+    const pkg = { action, sig }
 
     /* Send package. */
     _send0penMessage(pkg)
@@ -754,7 +937,7 @@ const _ziteSearch = async function () {
     _addLog(`User submitted a query for [ ${query} ]`)
 
     /* Show "connecting..." notification. */
-    await _wait('Zitetag | Search', `Processing request for [ <strong class="text-primary">${query}</strong> ]`, 'Please wait...')
+    await _wait('Zitetag | Search', `Processing request for<br />[ <strong class="text-primary">${query}</strong> ]`, 'Please wait...')
 
     /**
      * Reset Search
@@ -799,6 +982,10 @@ const _ziteSearch = async function () {
             inpZiteSearch.val('getfile:1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF:images/screen-01.png')
             _ziteSearch()
         })
+        $('.btnModalDebugTest4').click(() => {
+            inpZiteSearch.val('2f67b0e5933e5b37af877ed19686368b4937b404')
+            _ziteSearch()
+        })
         $('.btnModalDebugDbDumps').click(async () => {
             /* Initialize options. */
             const options = {
@@ -824,10 +1011,10 @@ const _ziteSearch = async function () {
                 .catch(_errorHandler)
             body += `<hr /><h1>Optional Files</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
 
-            /* Process MEDIA database. */
-            docs = await _dbManager['media'].allDocs(options)
+            /* Process BLOCKS database. */
+            docs = await _dbManager['blocks'].allDocs(options)
                 .catch(_errorHandler)
-            body += `<hr /><h1>Media</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
+            body += `<hr /><h1>Blocks</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
 
             /* Build gatekeeper package. */
             const pkg = { body }

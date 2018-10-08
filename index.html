@@ -32,17 +32,15 @@
         left: 0;
         right: 0;
         bottom: 0;
-        /* overflow: hidden; */
-        -webkit-overflow-scrolling: touch;
         overflow: auto;
-        background-color: rgba(30, 30, 220, 0.5);
+        -webkit-overflow-scrolling: touch;
+        /* background-color: rgba(30, 30, 220, 0.5); */
     }
     .gatekeeper iframe {
         display: block;
         width: 100%;
         height: 100%;
         border: none;
-        /* overflow: scroll; */
     }
     </style>
 </head>
@@ -52,7 +50,7 @@
 <div class="slim-header">
     <div class="container">
         <div class="slim-header-left">
-            <h2 class="slim-logo d-none d-sm-flex"><a href="">Zer<span class="text-danger">0net</span></a></h2>
+            <h2 class="slim-logo d-none d-sm-flex"><a href="" class="text-secondary">Zer<span class="text-primary">0net</span></a></h2>
 
             <div class="search-box">
                 <input type="text" class="form-control inpZiteSearch" placeholder="Zitetag | Search...">
@@ -272,6 +270,7 @@
 
                 <button type="button" class="btn btn-primary btnModalDebugTest2">Run Test #2</button>
                 <button type="button" class="btn btn-primary btnModalDebugTest3">Run Test #3</button>
+                <button type="button" class="btn btn-primary btnModalDebugTest4">Run Test #4</button>
                 <button type="button" class="btn btn-primary btnModalDebugDbDumps">Dump Databases</button>
             </div>
 
@@ -300,11 +299,12 @@
 <!-- Utility JS Libraries -->
 <script src="//cdn.0net.io/libs/moment/2.22.2/js/moment.min.js"></script>
 <script src="//cdn.0net.io/libs/crypto-js/3.1.9/js/crypto-js.min.js"></script>
-<script src="./libs/bitcoin-message.js" type="text/javascript"></script>
-<script src="./libs/calc-hash.js" type="text/javascript"></script>
+<script src="./libs/bitcoin-message.js"></script>
+<script src="./libs/buffer.js"></script>
+<script src="./libs/calc-hash.js"></script>
 
 <!-- Main JS Library -->
-<script src="./js/main.js" type="text/javascript"></script>
+<script src="./js/main.js"></script>
 
 </body>
 </html>
