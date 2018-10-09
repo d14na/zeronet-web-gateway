@@ -37,48 +37,30 @@ CHUNK_LENGTH = 16384
  * jQuery says it's time to boogie!
  */
 $(document).ready(() => {
-    /* Import handlers into global context (using eval???). */
-    // NOTE Is there a better way? (browserify? | webpack?) i guess...
-    //      But, we're gonna keep it super simple for now...
-    $.getScript('./js/_conn.js', (_script) => eval)
-    $.getScript('./js/_gatekeeper.js', (_script) => eval)
-    $.getScript('./js/_handle0penMessage.js', (_script) => eval)
-    $.getScript('./js/_modals.js', (_script) => eval)
-    $.getScript('./js/_pouchDb.js', (_script) => eval)
-    $.getScript('./js/_search.js', (_script) => eval)
-    $.getScript('./js/_utils.js', (_script) => eval)
+    /* Send an empty message to the gatekeeper to initialize. */
+    _authGatekeeper()
 
-    /* Allow dynamic scripts a lil bit to initialize. */
-    // NOTE We delay for 0.500 seconds to allow dynamic scripts to load.
-    // FIXME Test on ALL major browsers & platforms to determine if there
-    //       are any issues with this method. REPLACE ASAP!!
-    // TODO Add loading animation during this artificial delay sequence.
-    setTimeout(() => {
-        /* Send an empty message to the gatekeeper to initialize. */
-        _authGatekeeper()
+    /* Add keyboard (esc) detection. */
+    $(document).keyup(function (e) {
+        /* Hide ALL modal windows. */
+        if (e.keyCode === 27) {
+            /* Clear modals. */
+            _clearModals(0)
+        }
+    })
 
-        /* Add keyboard (esc) detection. */
-        $(document).keyup(function (e) {
-            /* Hide ALL modal windows. */
-            if (e.keyCode === 27) {
-                /* Clear modals. */
-                _clearModals(0)
-            }
-        })
+    /**
+     * Manage Zitetags & Searching
+     */
+    const btnZiteSearch = $('.btnZiteSearch')
+    btnZiteSearch.click(_search)
 
-        /**
-         * Manage Zitetags & Searching
-         */
-        const btnZiteSearch = $('.btnZiteSearch')
-        btnZiteSearch.click(_search)
-
-        const inpZiteSearch = $('.inpZiteSearch')
-        inpZiteSearch.on('keyup', (_event) => {
-            if (_event.keyCode === 13) {
-                _search()
-            }
-        })
-    }, 500)
+    const inpZiteSearch = $('.inpZiteSearch')
+    inpZiteSearch.on('keyup', (_event) => {
+        if (_event.keyCode === 13) {
+            _search()
+        }
+    })
 
     /* Verify NO parent window! */
     // if (window.self === window.top) {
