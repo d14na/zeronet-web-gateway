@@ -10,7 +10,7 @@ const _search = async function () {
     _addLog(`User submitted a query for [ ${query} ]`)
 
     /* Show "connecting..." notification. */
-    await _wait('Zitetag | Search', `Processing request for<br />[ <strong class="text-primary">${query}</strong> ]`, 'Please wait...')
+    await _wait('Peer-to-Peer Search', `Processing request for<br />[ <strong class="text-primary">${query}</strong> ]`, 'Please wait...')
 
     /**
      * Reset Search
@@ -168,3 +168,16 @@ const _search = async function () {
         _resetSearch()
     }
 }
+
+/**
+ * Manage Peer-to-Peer Searching
+ */
+const btnZiteSearch = $('.btnZiteSearch')
+btnZiteSearch.click(_search)
+
+const inpZiteSearch = $('.inpZiteSearch')
+inpZiteSearch.on('keyup', (_event) => {
+    if (_event.keyCode === 13) {
+        _search()
+    }
+})

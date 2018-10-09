@@ -16,7 +16,7 @@ const _handle0penMessage = async function (_msg) {
         if (msg.error) {
             /* Show alert. */
             return _alert(
-                'Zitetag | Search Error',
+                'Peer-to-Peer Search Error',
                 msg.error,
                 'Please try your request again...',
                 false

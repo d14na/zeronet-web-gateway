@@ -49,19 +49,6 @@ $(document).ready(() => {
         }
     })
 
-    /**
-     * Manage Zitetags & Searching
-     */
-    const btnZiteSearch = $('.btnZiteSearch')
-    btnZiteSearch.click(_search)
-
-    const inpZiteSearch = $('.inpZiteSearch')
-    inpZiteSearch.on('keyup', (_event) => {
-        if (_event.keyCode === 13) {
-            _search()
-        }
-    })
-
     /* Verify NO parent window! */
     // if (window.self === window.top) {
     //     console.log('NOTIFICATION', Notification)

@@ -6882,7 +6882,6 @@ p {
 @media (min-width: 360px) {
   .search-box .form-control, .search-box .dataTables_filter input, .dataTables_filter .search-box input {
     width: 140px;
-    padding-left: 20px;
   }
 }
 @media (min-width: 400px) {
@@ -7011,6 +7010,7 @@ p {
   color: #6c757d;
   width: 40px;
   height: 40px;
+  margin-left: 5px;
   border-radius: 100%;
   position: relative; }
   .header-notification .indicator {
@@ -7048,7 +7048,10 @@ p {
   display: flex;
   align-items: center;
   color: #495057;
-  margin-left: 15px; }
+  margin-left: 10px; }
+  @media (min-width: 360px) {
+    .logged-user {
+      margin-left: 15px; } }
   .logged-user img {
     width: 45px;
     height: 45px;
