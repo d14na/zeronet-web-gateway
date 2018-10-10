@@ -148,11 +148,11 @@ const _handleConfig = async function (_data) {
 
     /* Initailize database values. */
     const dbName = 'main'
-    const dataLabel = `${config.address}:content.json`
+    const dataId = config.dataId
     const data = config
 
     /* Write to database. */
-    _dbWrite(dbName, dataLabel, data)
+    _dbWrite(dbName, dataId, data)
 
     /* Format (display) body. */
     body = `
@@ -164,7 +164,7 @@ const _handleConfig = async function (_data) {
     /* Validate body. */
     if (body) {
         /* Build gatekeeper package. */
-        pkg = { body, prepend: true }
+        pkg = { body }
 
         /* Send package to gatekeeper. */
         _gatekeeperMsg(pkg)
@@ -235,11 +235,11 @@ const _handleZeroFile = async function (_data) {
     if (isValid) {
         /* Initailize database values. */
         dbName = 'files'
-        dataLabel = `${dest}:${innerPath}`
+        dataId = `${dest}:${innerPath}`
         data = body
 
         /* Write to database. */
-        _dbWrite(dbName, dataLabel, data)
+        _dbWrite(dbName, dataId, data)
 
         /* Decode body. */
         switch (fileExt.toUpperCase()) {
@@ -278,7 +278,7 @@ const _handleZeroFile = async function (_data) {
  */
 const _handleInfo = async function (_data) {
     /* Retrieve torrent info. */
-    const torrentInfo = data.torrentInfo
+    const torrentInfo = _data.torrentInfo
     console.log('TORRENT INFO', torrentInfo)
 
     /* Validate torrent info. */
@@ -288,17 +288,17 @@ const _handleInfo = async function (_data) {
 
     /* Initailize database values. */
     const dbName = 'main'
-    const dataLabel = `${_data.info.infoHash}:torrent`
-    const data = _data.info
+    const dataId = _data.dataId
+    const data = _data
 
     /* Write to database. */
-    // _dbWrite(dbName, dataLabel, data)
+    _dbWrite(dbName, dataId, data)
 
     /* Initialize body (display). */
     body = '<pre><code>'
 
     /* Body header. */
-    body += `<h3>${dataLabel}</h3><hr />`
+    body += `<h3>${dataId}</h3><hr />`
 
     /* Convert name to (readable) string. */
     const torrentName = Buffer.from(torrentInfo['name']).toString()
@@ -357,6 +357,15 @@ const _handleInfo = async function (_data) {
     /* Finalize body (display). */
     body += '</code></pre>'
 
+    /* Validate body. */
+    if (body) {
+        /* Build gatekeeper package. */
+        pkg = { body }
+
+        /* Send package to gatekeeper. */
+        _gatekeeperMsg(pkg)
+    }
+
     /* Clear modals. */
     _clearModals()
 }
@@ -366,7 +375,7 @@ const _handleUnknown = function (_data) {
 
     /* Format body. */
     const body = `<pre><code>
-<h3>${dataLabel}</h3>
+<h3>${dataId}</h3>
 <hr />
 ${JSON.stringify(data, null, 4)}
     </code></pre>`
@@ -419,7 +428,7 @@ const _handle0penMessage = async function (_data) {
         /* Initialize body holders. */
         let body = null
         // let config = null
-        // let dataLabel = null
+        // let dataId = null
         // let dbName = null
         let dest = null
         // let files = null
@@ -444,9 +453,14 @@ const _handle0penMessage = async function (_data) {
                     return _addLog(`${dest} is an invalid public key.`)
                 }
 
-                /* Validate config file. */
+                /* Verify config file. */
                 if (data.innerPath === 'content.json') {
                     return _handleConfig(data)
+                }
+            } else if (data.infoHash && data.torrentInfo) {
+                /* Verify info file. */
+                if (data.dataId.split(':')[1] === 'torrent') {
+                    return _handleInfo(data)
                 }
             } else {
                 return _addLog(`ERROR processing GET request for [ ${JSON.stringify(data)} ]`)
