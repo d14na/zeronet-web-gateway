@@ -11,10 +11,39 @@ const _handleAuth = function (_data) {
     const account = _data.account
 
     /* Format body. */
-    const body = `<hr /><h3>My Account<br />${account}</h3>`
+    const body = `
+<h3>My Account<br />${account}</h3>
+<br /><hr /><br />
+    `
 
-    /* Return body. */
-    return body
+    /* Validate body. */
+    if (body) {
+        /* Build gatekeeper package. */
+        pkg = { body, prepend: true }
+
+        /* Send package to gatekeeper. */
+        _gatekeeperMsg(pkg)
+    }
+
+    /* Clear modals. */
+    _clearModals()
+}
+
+/**
+ * Handle SEARCH
+ */
+const _handleSearch = function (_data) {
+    /* Retrieve search result. */
+    const body = _data.result
+
+    /* Build gatekeeper package. */
+    const pkg = { body }
+
+    /* Send package to gatekeeper. */
+    _gatekeeperMsg(pkg)
+
+    /* Clear modals. */
+    _clearModals()
 }
 
 /**
@@ -58,22 +87,48 @@ const _handleWhoAmI = function (_data) {
 
     /* Format body. */
     body = `
-<hr /><h3>0PEN Identity<br />${identity}</h3>
+<h3>0PEN Identity<br />${identity}</h3>
 <hr /><h3>My Location<br />${ip}:${port} [ ${city}, ${country} ]</h3>
 <hr /><h3>${verification} Peer Id [ SHA-1(ip:port) ]<br />${peerId}</h3>
+<br /><hr /><br />
     `
 
-    /* Return body. */
-    return body
+    /* Validate body. */
+    if (body) {
+        /* Build gatekeeper package. */
+        pkg = { body, prepend: true }
+
+        /* Send package to gatekeeper. */
+        _gatekeeperMsg(pkg)
+    }
+
+    /* Clear modals. */
+    _clearModals()
 }
 
 /**
  * Handle Zeronet Configuration
  */
 const _handleConfig = async function (_data) {
+    if (!_data.body) {
+        return console.log('ERROR retrieving config body', _data)
+    }
+
+    /* Initialize config. */
+    let config = null
+
+    try {
+        /* Parse config data. */
+        config = JSON.parse(Buffer.from(_data.body))
+        // console.log('CONFIG', config)
+    } catch (_err) {
+        console.log('ERROR parsing config data', _err)
+    }
+
     /* Verify the signature of the configuraton (content.json). */
-    const isSignatureValid = await verifyConfig(_data)
-        .catch((err) => console.error('Could NOT verify Zeronet config', _data))
+    const isSignatureValid = await _verifyConfig(config)
+        .catch((_err) => console.error(
+            'Could NOT verify Zeronet config', _err, _data))
 
     /* Validate signature. */
     if (!isSignatureValid) {
@@ -88,19 +143,127 @@ const _handleConfig = async function (_data) {
 
     /* Initailize database values. */
     const dbName = 'main'
-    const dataLabel = `${_data.config.address}:content.json`
-    const data = _data.config
+    const dataLabel = `${config.address}:content.json`
+    const data = config
 
     /* Write to database. */
     _dbWrite(dbName, dataLabel, data)
 
     /* Format (display) body. */
     body = `
+<br /><hr /><br />
 <h1>${isSignatureValid ? 'File Signature is VALID' : 'File Signature is INVALID'}</h1>
-<pre><code>${JSON.stringify(_data.config, null, 4)}</code></pre>
+<pre><code>${JSON.stringify(config, null, 4)}</code></pre>
     `
 
-    return body
+    /* Validate body. */
+    if (body) {
+        /* Build gatekeeper package. */
+        pkg = { body, prepend: true }
+
+        /* Send package to gatekeeper. */
+        _gatekeeperMsg(pkg)
+    }
+
+    /* Clear modals. */
+    _clearModals()
+}
+
+/**
+ * Hanlde Zeronet File
+ */
+const _handleZeroFile = async function (_data) {
+
+    config = await _dbRead('main', `${dest}:content.json`)
+    console.log('FOUND CONFIG', config)
+
+    /* Validate config. */
+    if (!config || !config.data || !config.data.files) {
+        return _addLog('Problem retrieving config (content.json) from database.')
+    }
+
+    /* Retrieve inner path. */
+    innerPath = data.innerPath
+
+    /* Parse file extension. */
+    fileExt = innerPath.split('.').pop()
+
+    /* Validate inner path. */
+    if (!innerPath) {
+        return _addLog(`Problem retrieving inner path [ ${innerPath} ]`)
+    }
+
+    /* Retrieve files list. */
+    files = config.data.files
+
+    /* Retrieve config size. */
+    const configSize = files[innerPath].size
+
+    /* Retrieve config hash. */
+    const configHash = files[innerPath].sha512
+    console.log(`${innerPath} size/hash`, configSize, configHash)
+
+    /* Parse body. */
+    if (data.body && data.body.type && data.body.type === 'Buffer') {
+        body = Uint8Array.from(data.body.data)
+    } else {
+        body = data.body
+    }
+
+    /* Calculate file size. */
+    const fileSize = parseInt(body.length)
+    console.log(`File length [ ${fileSize} ]`)
+
+    /* Calculate file verifcation hash. */
+    const fileHash = calcHash(body)
+    console.log(`File verification hash [ ${fileHash} ]`)
+
+    /* Verify the signature of the file. */
+    if (configSize === fileSize && configHash === fileHash) {
+        isValid = true
+    } else {
+        isValid = false
+    }
+
+    _addLog(`${innerPath} validation hash is ${isValid}'`)
+
+    if (isValid) {
+        /* Initailize database values. */
+        dbName = 'files'
+        dataLabel = `${dest}:${innerPath}`
+        data = body
+
+        /* Write to database. */
+        _dbWrite(dbName, dataLabel, data)
+
+        /* Decode body. */
+        switch (fileExt.toUpperCase()) {
+        case 'HTM':
+        case 'HTML':
+            body = body.toString()
+            break
+        case 'PNG':
+            body = `<img class="img-fluid" src="data:image/png;base64,${_imgConverter(body)}" width="300">`
+            break
+        default:
+            // NOTE Leave as buffer (for binary files).
+        }
+
+        /* Build gatekeeper package. */
+        pkg = { body }
+    } else {
+        /* Generate error body. */
+        body = `${innerPath} file verification FAILED!`
+
+        /* Build gatekeeper package. */
+        pkg = { body }
+    }
+
+    /* Send package to gatekeeper. */
+    _gatekeeperMsg(pkg)
+
+    /* Clear modals. */
+    _clearModals()
 }
 
 /**
@@ -189,7 +352,8 @@ const _handleInfo = async function (_data) {
     /* Finalize body (display). */
     body += '</code></pre>'
 
-    return body
+    /* Clear modals. */
+    _clearModals()
 }
 
 const _handleUnknown = function (_data) {
@@ -202,13 +366,11 @@ const _handleUnknown = function (_data) {
 ${JSON.stringify(data, null, 4)}
     </code></pre>`
 
-    return body
+    /* Clear modals. */
+    _clearModals()
 }
 
 const _handle0penMessage = async function (_data) {
-    /* Hide ALL modal windows. */
-    // _clearModals()
-
     try {
         /* Parse incoming message. */
         let data = JSON.parse(_data)
@@ -254,7 +416,7 @@ const _handle0penMessage = async function (_data) {
         // let config = null
         // let dataLabel = null
         // let dbName = null
-        // let dest = null
+        let dest = null
         // let files = null
         // let fileExt = null
         // let info = null
@@ -265,153 +427,36 @@ const _handle0penMessage = async function (_data) {
 
         switch (action.toUpperCase()) {
         case 'AUTH':
-            /* Process authorization. */
-            body = _handleAuth(data)
-
-            /* Validate body. */
-            if (body) {
-                /* Build gatekeeper package. */
-                pkg = { body, prepend: true }
-
-                /* Send package to gatekeeper. */
-                _gatekeeperMsg(pkg)
-            }
-
-            break
+            /* Handle response. */
+            return _handleAuth(data)
         case 'GET':
-            /* Validate message destination. */
-            if (data.dest) {
+            if (data.dest && data.innerPath) {
                 /* Retrieve destination. */
                 dest = data.dest
-            } else {
-                return _addLog(`Problem retrieving destination for [ ${JSON.stringify(data)} ]`)
-            }
 
-            /* Validate dest. */
-            if (!dest || dest.slice(0, 1) !== '1' || (dest.length !== 33 && dest.length !== 34)) {
-                return _addLog(`${dest} is an invalid public key.`)
-            }
-
-            config = await _dbRead('main', `${dest}:content.json`)
-            console.log('FOUND CONFIG', config)
-
-            /* Validate config. */
-            if (!config || !config.data || !config.data.files) {
-                return _addLog('Problem retrieving config (content.json) from database.')
-            }
-
-            /* Retrieve inner path. */
-            innerPath = data.innerPath
-
-            /* Parse file extension. */
-            fileExt = innerPath.split('.').pop()
-
-            /* Validate inner path. */
-            if (!innerPath) {
-                return _addLog(`Problem retrieving inner path [ ${innerPath} ]`)
-            }
-
-            /* Retrieve files list. */
-            files = config.data.files
-
-            /* Retrieve config size. */
-            const configSize = files[innerPath].size
-
-            /* Retrieve config hash. */
-            const configHash = files[innerPath].sha512
-            console.log(`${innerPath} size/hash`, configSize, configHash)
-
-            /* Parse body. */
-            if (data.body && data.body.type && data.body.type === 'Buffer') {
-                body = Uint8Array.from(data.body.data)
-            } else {
-                body = data.body
-            }
-
-            /* Calculate file size. */
-            const fileSize = parseInt(body.length)
-            console.log(`File length [ ${fileSize} ]`)
-
-            /* Calculate file verifcation hash. */
-            const fileHash = calcHash(body)
-            console.log(`File verification hash [ ${fileHash} ]`)
-
-            /* Verify the signature of the file. */
-            if (configSize === fileSize && configHash === fileHash) {
-                isValid = true
-            } else {
-                isValid = false
-            }
-
-            _addLog(`${innerPath} validation hash is ${isValid}'`)
-
-            if (isValid) {
-                /* Initailize database values. */
-                dbName = 'files'
-                dataLabel = `${dest}:${innerPath}`
-                data = body
-
-                /* Write to database. */
-                _dbWrite(dbName, dataLabel, data)
-
-                /* Decode body. */
-                switch (fileExt.toUpperCase()) {
-                case 'HTM':
-                case 'HTML':
-                    body = body.toString()
-                    break
-                case 'PNG':
-                    body = `<img class="img-fluid" src="data:image/png;base64,${_imgConverter(body)}" width="300">`
-                    break
-                default:
-                    // NOTE Leave as buffer (for binary files).
+                /* Validate dest. */
+                if (!dest || dest.slice(0, 1) !== '1' || (dest.length !== 33 && dest.length !== 34)) {
+                    return _addLog(`${dest} is an invalid public key.`)
                 }
 
-                /* Build gatekeeper package. */
-                pkg = { body }
+                /* Validate config file. */
+                if (data.innerPath === 'content.json') {
+                    return _handleConfig(data)
+                }
             } else {
-                /* Generate error body. */
-                body = `${innerPath} file verification FAILED!`
-
-                /* Build gatekeeper package. */
-                pkg = { body }
+                return _addLog(`ERROR processing GET request for [ ${JSON.stringify(data)} ]`)
             }
-
-            /* Send package to gatekeeper. */
-            _gatekeeperMsg(pkg)
 
             break
         case 'SEARCH':
-            /* Retrieve search result. */
-            body = data.result
-
-            /* Build gatekeeper package. */
-            pkg = { body }
-
-            /* Send package to gatekeeper. */
-            _gatekeeperMsg(pkg)
-
-            break
+            /* Handle response. */
+            return _handleSearch(data)
         case 'WHOAMI':
-            /* Process authorization. */
-            body = _handleWhoAmI(data)
-
-            /* Validate body. */
-            if (body) {
-                /* Build gatekeeper package. */
-                pkg = { body, prepend: true }
-
-                /* Send package to gatekeeper. */
-                _gatekeeperMsg(pkg)
-            }
-
-            break
+            /* Hanlde response. */
+            return _handleWhoAmI(data)
         default:
             // nothing to do here
         }
-
-        /* Clear modals. */
-        _clearModals()
     } catch (_err) {
         _errorHandler(_err, false)
     }

@@ -66,7 +66,7 @@ const _authRequest = async function (_identity) {
     const action = 'AUTH'
 
     /* Retrieve signed proof. */
-    const sig = await signAuth(proof)
+    const sig = await _signAuth(proof)
     // console.log('Signed proof', sig)
 
     /* Build package. */
@@ -79,7 +79,7 @@ const _authRequest = async function (_identity) {
 /**
  * Signs a (data) proof provided by the server for account authentication.
  */
-const signAuth = async (_proof) => {
+const _signAuth = async (_proof) => {
     /* Initialize a new web3 object to our provider. */
     const web3 = new Web3()
     // const web3 = new Web3(new Web3.providers.HttpProvider('https://mainnet.infura.io/v3/' + INFURA_API_KEY))
@@ -99,13 +99,13 @@ const signAuth = async (_proof) => {
 /**
  * Verify Configuration (content.json)
  */
-const _verifyConfig = async (_config) => {
+const _verifyConfig = (_config) => {
     /**
      * Escape unicode characters.
      * Converts to a string representation of the unicode.
      */
-    const escapeUnicode = function (str) {
-        return str.replace(/[^\0-~]/g, function (ch) {
+    const escapeUnicode = function (_str) {
+        return _str.replace(/[^\0-~]/g, function (ch) {
             return '\\u' + ('000' + ch.charCodeAt().toString(16)).slice(-4)
         })
     }
@@ -127,10 +127,12 @@ const _verifyConfig = async (_config) => {
     // NOTE: This matches the functionality of Python's `unicode` handling.
     _config = escapeUnicode(_config)
 
+    // NOTE This is a time extensive process, so let's NOT block the event loop.
     return new Promise((_resolve, _reject) => {
         /* Verify the Bitcoin signature. */
         const isValid = BitcoinMessage.verify(_config, address, signature)
 
+        /* Resolve the result. */
         _resolve(isValid)
     })
 }
