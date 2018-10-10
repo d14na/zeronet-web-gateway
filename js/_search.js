@@ -1,3 +1,19 @@
+/* Initialize search fields. */
+const btnZiteSearch = $('.btnZiteSearch')
+const inpZiteSearch = $('.inpZiteSearch')
+
+/**
+ * Reset Search
+ */
+const _resetSearch = () => {
+    /* Clear search input. */
+    inpZiteSearch.val('')
+
+    /* Remove focus from search elements. */
+    inpZiteSearch.blur()
+    btnZiteSearch.blur()
+}
+
 /**
  * Search
  *
@@ -7,28 +23,21 @@ const _search = async function () {
     /* Retrieve search query. */
     const query = inpZiteSearch.val()
 
-    _addLog(`User submitted a query for [ ${query} ]`)
+    _addLog(`User submitted a search for [ ${query} ]`)
 
     /* Show "connecting..." notification. */
     await _wait('Peer-to-Peer Search', `Processing request for<br />[ <strong class="text-primary">${query}</strong> ]`, 'Please wait...')
 
-    /**
-     * Reset Search
-     */
-    const _resetSearch = () => {
-        /* Clear search input. */
-        inpZiteSearch.val('')
-
-        /* Remove focus from search elements. */
-        inpZiteSearch.blur()
-        btnZiteSearch.blur()
-    }
-
     /* Initialize holders. */
     let action = null
+    let body = null
+    let dataId = null
     let dest = null
+    let docs = null
     let infoHash = null
     let innerPath = null
+    let options = null
+    let params = null
     let pkg = null
 
     /* Basic validation. */
@@ -36,6 +45,7 @@ const _search = async function () {
         return
     }
 
+    /* Validate search query. */
     if (query.slice(0, 10).toUpperCase() === 'DEBUG.MENU') {
         /* Clear open modals. */
         _clearModals()
@@ -50,24 +60,26 @@ const _search = async function () {
         $('.btnModalDebugTest2').click(() => {
             inpZiteSearch.val('getfile:1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF:index.html')
             _search()
+            _clearModals()
         })
+
         $('.btnModalDebugTest3').click(() => {
             inpZiteSearch.val('getfile:1ExPLorERDSCnrYHM3Q1m6rQbTq7uCprqF:images/screen-01.png')
             _search()
+            _clearModals()
         })
+
         $('.btnModalDebugTest4').click(() => {
             inpZiteSearch.val('2f67b0e5933e5b37af877ed19686368b4937b404')
             _search()
+            _clearModals()
         })
+
         $('.btnModalDebugDbDumps').click(async () => {
             /* Initialize options. */
-            const options = {
+            options = {
                 // include_docs: true
             }
-
-            /* Initialize holders. */
-            let docs = null
-            let body = null
 
             /* Process MAIN database. */
             docs = await _dbManager['main'].allDocs(options)
@@ -77,89 +89,98 @@ const _search = async function () {
             /* Process FILES database. */
             docs = await _dbManager['files'].allDocs(options)
                 .catch(_errorHandler)
-            body += `<hr /><h1>Files</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
+            body += `<hr /><h1>Zeronet Files</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
 
             /* Process OPTIONAL database. */
             docs = await _dbManager['optional'].allDocs(options)
                 .catch(_errorHandler)
-            body += `<hr /><h1>Optional Files</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
+            body += `<hr /><h1>Optional Zeronet Files</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
 
             /* Process BLOCKS database. */
             docs = await _dbManager['blocks'].allDocs(options)
                 .catch(_errorHandler)
-            body += `<hr /><h1>Blocks</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
+            body += `<hr /><h1>Data / Media Blocks</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
 
             /* Build gatekeeper package. */
-            const pkg = { body }
+            pkg = { body }
 
             /* Send package to gatekeeper. */
             _gatekeeperMsg(pkg)
+
+            _clearModals()
         })
 
         /* Reset search. */
         _resetSearch()
     } else if (query.slice(0, 7).toUpperCase() === 'GETFILE' && query.length > 10) {
-        /* Retrieve target. */
-        const target = query.slice(8)
+        /* Set action. */
+        action = 'GET'
+
+        /* Retrieve request parameters. */
+        params = query.slice(8)
 
         /* Retrieve destination. */
-        dest = target.split(':')[0]
+        dest = params.split(':')[0]
 
         /* Retrieve inner path. */
-        innerPath = target.split(':')[1]
+        innerPath = params.split(':')[1]
 
-        /* Set action. */
-        action = 'GETFILE'
+        /* Set data id. */
+        dataId = `${dest}:${innerPath}`
 
         /* Build package. */
-        pkg = { action, dest, innerPath }
-    } else if (query.slice(0, 1) === '1' && (query.length === 33 || query.length === 33)) {
+        pkg = { action, dataId }
+    } else if (query.slice(0, 1) === '1' && (query.length === 33 || query.length === 34)) {
         /* Set action. */
-        action = 'GETFILE'
+        action = 'GET'
 
         /* Set destination. */
         dest = query
 
+        /* Set inner path. */
+        innerPath = 'content.json'
+
+        /* Set data id. */
+        dataId = `${dest}:${innerPath}`
+
         /* Build package. */
-        pkg = { action, dest, innerPath: 'index.html' }
+        pkg = { action, dataId }
+    } else if (query.length === 40) {
+        /* Set action. */
+        action = 'GET'
+
+        /* Set info hash. */
+        infoHash = query
+
+        /* Set inner path. */
+        innerPath = 'torrent'
+
+        /* Set data id. */
+        dataId = `${infoHash}:${innerPath}`
+
+        /* Build package. */
+        pkg = { action, dataId }
+    } else if (query.slice(0, 20) === 'magnet:?xt=urn:btih:') {
+        /* Set action. */
+        action = 'GET'
+
+        /* Retrieve info hash. */
+        infoHash = query.slice(20, 60)
+
+        /* Set inner path. */
+        innerPath = 'torrent'
+
+        /* Set data id. */
+        dataId = `${infoHash}:${innerPath}`
+
+        /* Build package. */
+        pkg = { action, dataId }
     } else {
-        // TEMP Test for public key
-        if (query.slice(0, 1) === '1' && (query.length === 33 || query.length === 34)) {
-            /* Retrieve destination. */
-            dest = query
+        /* Set action. */
+        action = 'SEARCH'
 
-            /* Set action. */
-            action = 'GETINFO'
-
-            /* Build package. */
-            pkg = { action, query }
-        // TEMP Test for info hash
-        } else if (query.length === 40) {
-            /* Retrieve info hash. */
-            infoHash = query
-
-            /* Set action. */
-            action = 'GETINFO'
-
-            /* Build package. */
-            pkg = { action, query }
-        // TEMP Test for magnet link
-        } else if (query.slice(0, 20) === 'magnet:?xt=urn:btih:') {
-            /* Retrieve info hash. */
-            infoHash = query.slice(20, 60)
-
-            /* Set action. */
-            action = 'GETINFO'
-
-            /* Build package. */
-            pkg = { action, query }
-        } else {
-            /* Set action. */
-            action = 'GETINFO'
-
-            /* Build package. */
-            pkg = { action, query }
-        }
+        /* Build package. */
+        pkg = { action, query }
     }
 
     /* Send package. */
@@ -169,13 +190,8 @@ const _search = async function () {
     }
 }
 
-/**
- * Manage Peer-to-Peer Searching
- */
-const btnZiteSearch = $('.btnZiteSearch')
+/* Initialize search listeners. */
 btnZiteSearch.click(_search)
-
-const inpZiteSearch = $('.inpZiteSearch')
 inpZiteSearch.on('keyup', (_event) => {
     if (_event.keyCode === 13) {
         _search()

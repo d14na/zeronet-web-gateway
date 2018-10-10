@@ -60,14 +60,14 @@ const _authRequest = async function (_identity) {
     const nonce = moment().unix()
 
     const proof = `${network}:${_identity}:${nonce}`
-    console.info('Generated authentication proof', proof)
+    _addLog(`Generated authentication (${proof})`)
 
     /* Set action. */
     const action = 'AUTH'
 
     /* Retrieve signed proof. */
     const sig = await signAuth(proof)
-    console.info('Signed proof', sig)
+    // console.log('Signed proof', sig)
 
     /* Build package. */
     const pkg = { action, sig }
@@ -133,30 +133,6 @@ const _verifyConfig = async (_config) => {
 
         _resolve(isValid)
     })
-}
-
-/**
- * Update Location Details
- */
-const _updateLocDetails = function () {
-    /* Basic web bot (search spider) filter. */
-    if (!navigator.userAgent.match(/bot|spider/i)) {
-        $.get('https://ipinfo.io', function (response) {
-            console.log('IpInfo.io', response)
-
-            /* Retrieve city. */
-            const city = response.city
-
-            /* Retrieve country. */
-            const country = response.country
-
-            /* Retrieve organization. */
-            const org = response.org
-
-            /* Update UI location. */
-            $('.location').append(`<br />${city}, ${country}<br /><small><em>${org}</em></small>`)
-        }, 'jsonp')
-    }
 }
 
 /**

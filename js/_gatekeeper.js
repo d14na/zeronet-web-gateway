@@ -59,7 +59,7 @@ window.addEventListener('message', function (_event) {
  * don't have an origin which we can target.
  * (this might allow some "zero-day-style" esoteric attacks)
  */
-const _gatekeeperMsg = function (_message={}) {
+const _gatekeeperMsg = function (_message = {}) {
     contentWindow.postMessage(_message, '*')
 }
 

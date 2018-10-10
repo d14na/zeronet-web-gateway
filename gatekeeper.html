@@ -62,24 +62,39 @@ const _callback = function (_message) {
 window.addEventListener('message', function (_event) {
     // console.log('Gatekeeper received event', _event)
 
+    /* Initialize message. */
+    let msg = null
+
+    /* Initialize success. */
+    let success = null
+
+    /* Initailize error. */
+    let error = null
+
     /* Verify parent is authorized and set. */
     if (!parent) {
         /* Attempt to initialize the gateway. */
         if (_init(_event)) {
+            /* Set success flag. */
+            success = true
+
+            /* Set message. */
+            msg = 'GATEKEEPER_IS_READY'
+
             /* Build message. */
-            const message = {
-                success: true,
-                msg: 'GATEKEEPER_IS_READY'
-            }
+            const message = { success, msg }
 
             /* Callback to parent. */
             return _callback(message)
         } else {
+            /* Set error flag. */
+            error = true
+
+            /* Set message. */
+            msg = 'Authorization failed!'
+
             /* Build message. */
-            const message = {
-                error: true,
-                msg: 'Authorization failed!'
-            }
+            const message = { error, msg }
 
             /* Callback to parent. */
             return _callback(message)
@@ -94,30 +109,41 @@ window.addEventListener('message', function (_event) {
         /* Retrieve the data. */
         const data = _event.data
 
+        /* Validate data. */
+        if (!data) {
+            return
+        }
+
         /* Retrieve html body. */
         const body = data.body
 
-        /* Update the frame's html body. */
-        $('body').html(body)
+        if (data.prepend) {
+            /* Prepend the data to the frame's html body. */
+            $('body').prepend(body)
+        } else if (data.append) {
+            /* Append the data to the frame's html body. */
+            $('body').append(body)
+        } else {
+            /* Replace the data on the frame's html body. */
+            $('body').html(body)
+        }
 
         /* Scroll to the top. */
-        $('html, body').scrollTop(25)
-    } catch (e) {
+        $('html, body').scrollTop(0)
+        // $('html, body').scrollTop(25) ???
+    } catch (_err) {
+        /* Set error flag. */
+        error = true
+
+        /* Set message. */
+        msg = _err.message
+
         /* Build error. */
-        const msg = {
-            error: true,
-            msg: e
-        }
+        const msg = { error, msg }
 
         /* Callback to parent. */
         return _callback(msg)
     }
-
-    /* Initialize the parent (window). */
-    // const parent = _event.source
-
-    // response = `You want me to ${_event.data}?`
-
 })
 </script>
 </head>
