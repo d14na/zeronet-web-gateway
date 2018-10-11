@@ -43,6 +43,16 @@
         border: none;
     }
     </style>
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-111679242-4"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-111679242-4');
+    </script>
 </head>
 
 <body>
@@ -67,16 +77,16 @@
                 </a>
                 <div class="dropdown-menu">
                     <div class="dropdown-menu-header">
-                        <h6 class="dropdown-menu-title">Network Status {{ message }}</h6>
+                        <h6 class="dropdown-menu-title">Network Status</h6>
                         <div>
-                            <a href="javascript://" class="networkStatusLogs">Show Logs</a>
+                            <a href="javascript://" @click="_networkStatusLogs">Show Logs</a>
                             <a href="javascript://" class="networkStatusSettings">Settings</a>
                         </div>
                     </div>
 
                     <div class="dropdown-activity-list">
                         <div class="activity-label tx-16 text-center">
-                            <strong class="text-danger tx-16">0PEN is offline!</strong>
+                            <strong class="tx-16" :class="zeroPenStatusClass">{{ zeroPenStatus }}</strong>
                         </div>
 
                         <div class="activity-item">
@@ -102,18 +112,10 @@
                                 <div class="col-8">(D:) Storage almost full</div>
                             </div>
                         </div>
-
-                        <div class="activity-item">
-                            <div class="row no-gutters">
-                                <div class="col-2 tx-right">3:21am</div>
-                                <div class="col-2 tx-center"><span class="square-10 bg-success"></span></div>
-                                <div class="col-8">1 item sold <strong>Christmas bundle</strong></div>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="dropdown-list-footer">
-                        <a href="javascript://" class="networkStatusShowAll"><i class="fa fa-angle-down"></i> Show All Activities</a>
+                        <a href="javascript://" @click="_networkStatusShowAll"><i class="fa fa-angle-down"></i> Show All Activities</a>
                     </div>
                 </div>
             </div>
@@ -129,14 +131,13 @@
                     <div class="dropdown-menu-header">
                         <h6 class="dropdown-menu-title">Notifications</h6>
                         <div>
-                            <a href="javascript://" class="notifMarkAllRead">Mark All as Read</a>
-                            <a href="javascript://" class="notifSettings">Settings</a>
+                            <a href="javascript://" @click="_notifMarkAllRead">Mark All as Read</a>
+                            <a href="javascript://" class="_notifSettings">Settings</a>
                         </div>
                     </div>
 
                     <div class="dropdown-list">
-
-                        <a v-for="notif in notifList" @click="loadNotif(notif.id)" href="javascript://" class="dropdown-link">
+                        <a v-for="notif in notifList" @click="_loadNotif(notif.id)" href="javascript://" class="dropdown-link">
                             <div class="media">
                                 <img :src="notif.icon" alt="">
                                 <div class="media-body">
@@ -149,42 +150,6 @@
                             </div>
                         </a>
 
-                        <a href="javascript:loadNotif('1')" class="dropdown-link">
-                            <div class="media">
-                                <img src="img/img8.jpg" alt="">
-                                <div class="media-body">
-                                    <p><strong>Suzzeth Bungaos</strong> tagged you and 18 others in a post.</p>
-                                    <span>October 03, 2017 8:45am</span>
-                                </div>
-                            </div>
-                        </a>
-                        <a href="javascript:loadNotif('2')" class="dropdown-link">
-                            <div class="media">
-                                <img src="img/img9.jpg" alt="">
-                                <div class="media-body">
-                                    <p><strong>Mellisa Brown</strong> appreciated your work <strong>The Social Network</strong></p>
-                                    <span>October 02, 2017 12:44am</span>
-                                </div>
-                            </div>
-                        </a>
-                        <a href="javascript:loadNotif('3')" class="dropdown-link read">
-                            <div class="media">
-                                <img src="img/img10.jpg" alt="">
-                                <div class="media-body">
-                                    <p>20+ new items added are for sale in your <strong>Sale Group</strong></p>
-                                    <span>October 01, 2017 10:20pm</span>
-                                </div>
-                            </div>
-                        </a>
-                        <a href="javascript:loadNotif('4')" class="dropdown-link read">
-                            <div class="media">
-                                <img src="img/img2.jpg" alt="">
-                                <div class="media-body">
-                                    <p><strong>Julius Erving</strong> wants to connect with you on your conversation with <strong>Ronnie Mara</strong></p>
-                                    <span>October 01, 2017 6:08pm</span>
-                                </div>
-                            </div>
-                        </a>
                         <div class="dropdown-list-footer">
                             <a href="javascript://" class="notifShowAll"><i class="fa fa-angle-down"></i> Show All Notifications</a>
                         </div>
@@ -196,8 +161,8 @@
 
             <div class="dropdown dropdown-c">
                 <a href="javascript://" class="logged-user" data-toggle="dropdown">
-                    <img src="img/img1.jpg" alt="">
-                    <span>Guest Peer</span>
+                    <img :src="profile.icon" alt="">
+                    <span>{{ profile.nickname }}</span>
                     <i class="fa fa-angle-down"></i>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right">

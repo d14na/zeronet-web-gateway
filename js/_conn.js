@@ -73,6 +73,9 @@ const _send0penMessage = function (_msg) {
 const _connOpen = async function () {
     _addLog('0PEN connected successfully.')
 
+    /* Update connection status (display). */
+    vue._updateConnStatus('0PEN is Connected!', 'text-success')
+
     /* Build package. */
     const pkg = {
         action: 'WHOAMI'

@@ -33,33 +33,74 @@ const BLOCK_HASH_LENGTH = 20
 const CHUNK_LENGTH = 16384
 
 /**
- * Vue Application Model
+ * Vue Application Manager
  */
-const vueModel = {
+const vueManager = {
     el: '#app',
     data: () => ({
-        hello: null,
-        message: 'Hello Vue!',
+        logMgr: [],
         notifList: [],
-        notifIndicator: true
+        profile: {},
+        zeroPenStatus: '0PEN is Disconnected!',
+        zeroPenStatusClass: 'text-danger'
     }),
     mounted: function () {
-        this.hello = 'world'
+        /* Initialize application. */
+        this._init()
     },
     computed: {
-        _something: function () {
-            return true
+        notifIndicator: function () {
+            if (this.notifList.length) {
+                return true
+            } else {
+                return false
+            }
         }
     },
     methods: {
         _init: function () {
-            return true
+            /* Initialize profile. */
+            this.profile = {
+                icon: '/img/dark-hood-icon.jpg',
+                nickname: 'Guest Peer'
+            }
+        },
+        _loadNotif: function (_notifId) {
+            alert(`loading notification [ ${_notifId} ]`)
+        },
+        _notifMarkAllRead: function () {
+            this.notifList = []
+        },
+        _networkStatusLogs: function () {
+            /* Initialize body. */
+            let body = ''
+
+            body += '<pre>'
+
+            for (let entry of this.logMgr.reverse()) {
+                body += `${entry}\n`
+            }
+
+            body += '</pre>'
+
+            /* Build gatekeeper package. */
+            pkg = { body }
+
+            /* Send package to gatekeeper. */
+            _gatekeeperMsg(pkg)
+        },
+        _networkStatusShowAll: function () {
+            alert('_networkStatusShowAll')
+        },
+        _updateConnStatus: function (_status, _class) {
+            this.zeroPenStatus = _status
+            this.zeroPenStatusClass = _class
         }
     }
 }
 
-/* Initialize the Vue Model. */
-const vm = new Vue(vueModel)
+/* Initialize the Vue Manager. */
+const vue = new Vue(vueManager)
 
 /**
  * jQuery says it's time to boogie!
@@ -77,7 +118,8 @@ $(document).ready(() => {
         }
     })
 
-    vm.notifList.push({
+    // TEMP SAMPLE NOTIFICATION -- FOR TESTING PURPOSES ONLY
+    vue.notifList.push({
         id: 1337,
         heading: 'Londynn Lee',
         description: 'tagged you and 18 others in a post.',

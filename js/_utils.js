@@ -1,6 +1,3 @@
-/* Initialize global managers. */
-const logMgr = []
-
 /**
  * Add Log Entry
  *
@@ -13,7 +10,7 @@ const _addLog = function (_message) {
     const entry = `[ ${_message} ]`
 
     /* Add to log manager. */
-    logMgr.push(`${timestamp} ${entry}`)
+    vue.logMgr.push(`${timestamp} ${entry}`)
 
     /* Write to console. */
     console.info('%c' + timestamp + '%c ' + entry, 'color:red', 'color:black')
