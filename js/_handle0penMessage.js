@@ -115,6 +115,8 @@ const _handleWhoAmI = function (_data) {
  * Handle Zeronet Configuration
  */
 const _handleConfig = async function (_data) {
+    console.log('CONFIG DATA', _data)
+
     if (!_data.body) {
         return console.log('ERROR retrieving config body', _data)
     }
@@ -125,7 +127,8 @@ const _handleConfig = async function (_data) {
     try {
         /* Parse config data. */
         config = JSON.parse(Buffer.from(_data.body))
-        // console.log('CONFIG', config)
+
+        console.log('CONFIG', config)
     } catch (_err) {
         console.log('ERROR parsing config data', _err)
     }
@@ -148,7 +151,8 @@ const _handleConfig = async function (_data) {
 
     /* Initailize database values. */
     const dbName = 'main'
-    const dataId = config.dataId
+    // NOTE data id DOES NOT exist for SEARCH requests (eg zitetags).
+    const dataId = config.dataId || `${config.dest}:${config.innerPath}`
     const data = config
 
     /* Write to database. */
@@ -322,19 +326,19 @@ const _handleInfo = async function (_data) {
     const blocks = Buffer.from(torrentInfo['pieces'])
     body += '<br /><hr />'
     body += `<br />    ALL Hash Blocks [ length: ${blocks.length} ]`
-    body += `<br /><textarea>${blocks.toString('hex')}</textarea>`
-
-    /* Retrieve the block length. */
-    const blockLength = parseInt(torrentInfo['piece length'])
-    body += `<br />    Block Length   : ${blockLength} bytes`
+    body += `<br /><textarea cols=60 rows=6>${blocks.toString('hex')}</textarea>`
 
     /* Calculate the number of hashes/blocks. */
     const numBlocks = blocks.length / BLOCK_HASH_LENGTH
     body += '<br /><hr />'
     body += `<br />    # Total Blocks : ${numBlocks}`
 
+    /* Retrieve the block length. */
+    const blockLength = parseInt(torrentInfo['piece length'])
+    body += `<br />    Block Length   : ${blockLength} bytes`
+
     const numBlockChunks = parseInt(blockLength / CHUNK_LENGTH)
-    body += `<br />    # of Chunks per Block [ ${numBlockChunks} ]`
+    body += `<br />    (${numBlockChunks} chunks per block)`
 
     body += '<br /><hr />'
 
@@ -425,19 +429,10 @@ const _handle0penMessage = async function (_data) {
             return _errorHandler(`No ACTION was found for [ ${JSON.stringify(data)} ]`, false)
         }
 
-        /* Initialize body holders. */
+        /* Initialize (data) managers. */
         let body = null
-        // let config = null
-        // let dataId = null
-        // let dbName = null
         let dest = null
-        // let files = null
-        // let fileExt = null
-        // let info = null
-        // let innerPath = null
-        // let isValid = null
         let pkg = null
-        // let target = null
 
         switch (action.toUpperCase()) {
         case 'AUTH':

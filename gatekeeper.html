@@ -16,13 +16,13 @@ body {
 /* Initialize security check flag. */
 // let isSecure = false
 
-/* Initialize parent holder. */
+/* Initialize parent manager. */
 let parent = null
 
-/* Initialize origin holder. */
+/* Initialize origin manager. */
 let origin = null
 
-/* Initialize response holder. */
+/* Initialize response manager. */
 // let response = null
 
 /**
@@ -38,10 +38,10 @@ const _init = function (_event) {
         /* Set security flag. */
         // isSecure = true
 
-        /* Set the parent holder. */
+        /* Set the parent manager. */
         parent = _event.source
 
-        /* Set the origin holder. */
+        /* Set the origin manager. */
         origin = _event.origin
 
         return true

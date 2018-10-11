@@ -47,7 +47,7 @@
 
 <body>
 
-<div class="slim-header">
+<div id="app" class="slim-header">
     <div class="container">
         <div class="slim-header-left">
             <h2 class="slim-logo d-none d-sm-flex"><a href="" class="text-secondary">Zer<span class="text-primary">0net</span></a></h2>
@@ -58,6 +58,8 @@
             </div>
         </div>
 
+        <!-- NETWORK STATUS -->
+
         <div class="slim-header-right">
             <div class="dropdown dropdown-a">
                 <a href="javascript://" class="header-notification" data-toggle="dropdown">
@@ -65,10 +67,10 @@
                 </a>
                 <div class="dropdown-menu">
                     <div class="dropdown-menu-header">
-                        <h6 class="dropdown-menu-title">Network Status</h6>
+                        <h6 class="dropdown-menu-title">Network Status {{ message }}</h6>
                         <div>
-                            <a href="javascript://">Events</a>
-                            <a href="javascript://">Settings</a>
+                            <a href="javascript://" class="networkStatusLogs">Show Logs</a>
+                            <a href="javascript://" class="networkStatusSettings">Settings</a>
                         </div>
                     </div>
 
@@ -111,27 +113,43 @@
                     </div>
 
                     <div class="dropdown-list-footer">
-                        <a href="javascript://"><i class="fa fa-angle-down"></i> Show All Activities</a>
+                        <a href="javascript://" class="networkStatusShowAll"><i class="fa fa-angle-down"></i> Show All Activities</a>
                     </div>
                 </div>
             </div>
 
+            <!-- NOTIFICATIONS -->
+
             <div class="dropdown dropdown-b">
                 <a href="javascript://" class="header-notification" data-toggle="dropdown">
                     <i class="fa fa-bell-o"></i>
-                    <span class="indicator"></span>
+                    <span :class="{ indicator: notifIndicator }"></span>
                 </a>
                 <div class="dropdown-menu">
                     <div class="dropdown-menu-header">
                         <h6 class="dropdown-menu-title">Notifications</h6>
                         <div>
-                            <a href="javascript://">Mark All as Read</a>
-                            <a href="javascript://">Settings</a>
+                            <a href="javascript://" class="notifMarkAllRead">Mark All as Read</a>
+                            <a href="javascript://" class="notifSettings">Settings</a>
                         </div>
                     </div>
 
                     <div class="dropdown-list">
-                        <a href="javascript://" class="dropdown-link">
+
+                        <a v-for="notif in notifList" @click="loadNotif(notif.id)" href="javascript://" class="dropdown-link">
+                            <div class="media">
+                                <img :src="notif.icon" alt="">
+                                <div class="media-body">
+                                    <p>
+                                        <strong>{{ notif.heading }}</strong> {{ notif.description}}
+                                    </p>
+
+                                    <span>{{ notif.dateCreated }}</span>
+                                </div>
+                            </div>
+                        </a>
+
+                        <a href="javascript:loadNotif('1')" class="dropdown-link">
                             <div class="media">
                                 <img src="img/img8.jpg" alt="">
                                 <div class="media-body">
@@ -140,7 +158,7 @@
                                 </div>
                             </div>
                         </a>
-                        <a href="javascript://" class="dropdown-link">
+                        <a href="javascript:loadNotif('2')" class="dropdown-link">
                             <div class="media">
                                 <img src="img/img9.jpg" alt="">
                                 <div class="media-body">
@@ -149,7 +167,7 @@
                                 </div>
                             </div>
                         </a>
-                        <a href="javascript://" class="dropdown-link read">
+                        <a href="javascript:loadNotif('3')" class="dropdown-link read">
                             <div class="media">
                                 <img src="img/img10.jpg" alt="">
                                 <div class="media-body">
@@ -158,7 +176,7 @@
                                 </div>
                             </div>
                         </a>
-                        <a href="javascript://" class="dropdown-link read">
+                        <a href="javascript:loadNotif('4')" class="dropdown-link read">
                             <div class="media">
                                 <img src="img/img2.jpg" alt="">
                                 <div class="media-body">
@@ -168,11 +186,13 @@
                             </div>
                         </a>
                         <div class="dropdown-list-footer">
-                            <a href="javascript://"><i class="fa fa-angle-down"></i> Show All Notifications</a>
+                            <a href="javascript://" class="notifShowAll"><i class="fa fa-angle-down"></i> Show All Notifications</a>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- USER / PROFILE -->
 
             <div class="dropdown dropdown-c">
                 <a href="javascript://" class="logged-user" data-toggle="dropdown">
@@ -181,10 +201,16 @@
                     <i class="fa fa-angle-down"></i>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right">
+                    <div class="activity-label tx-16 text-center">
+                        <strong class="text-success tx-16"></strong>
+                    </div>
+
                     <nav class="nav">
-                        <a href="javascript://" class="nav-link"><span class="flag-icon flag-icon-us tx-16 mr-3"></span> English</a>
-                        <a href="javascript://" class="nav-link"><i class="icon ion-md-options mr-3"></i> Zer0net Settings</a>
-                        <a href="javascript://" class="nav-link"><i class="icon ion-md-help-buoy mr-3"></i> Help &amp; Support</a>
+                        <a href="javascript://" class="nav-link profileAccount"><i class="icon ion-md-person mr-3"></i> Account Profile</a>
+                        <a href="javascript://" class="nav-link profileCrypto"><i class="icon ion-md-cash mr-3"></i> Crypto Wallet</a>
+                        <a href="javascript://" class="nav-link profileSettings"><i class="icon ion-md-options mr-3"></i> Settings</a>
+                        <a href="javascript://" class="nav-link profileHelp"><i class="icon ion-md-help-buoy mr-3"></i> Help &amp; Support</a>
+                        <a href="javascript://" class="nav-link profileI18n"><span class="flag-icon flag-icon-us tx-16 mr-3"></span> English</a>
                     </nav>
                 </div>
             </div>
@@ -290,6 +316,7 @@
 <script src="//cdn.0net.io/libs/jquery/3.3.1/js/jquery.min.js"></script>
 <script src="//cdn.0net.io/libs/popper.js/1.12.9/js/popper.js"></script>
 <script src="//cdn.0net.io/libs/bootstrap/4.0.0/js/bootstrap.js"></script>
+<script src="//cdn.0net.io/libs/vue/2.5.17/js/vue.min.js"></script>
 <script src="//cdn.0net.io/libs/pouchdb/7.0.0/js/pouchdb.min.js"></script>
 
 <!-- Communications JS Libraries -->
@@ -308,7 +335,10 @@
 <script src="./js/_gatekeeper.js"></script>
 <script src="./js/_handle0penMessage.js"></script>
 <script src="./js/_modals.js"></script>
+<script src="./js/_networkStatus.js"></script>
+<script src="./js/_notifications.js"></script>
 <script src="./js/_pouchDb.js"></script>
+<script src="./js/_profile.js"></script>
 <script src="./js/_search.js"></script>
 <script src="./js/_utils.js"></script>
 

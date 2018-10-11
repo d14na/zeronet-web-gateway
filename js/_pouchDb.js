@@ -34,11 +34,11 @@ _dbManager['blocks'] = new PouchDB('blocks')
  *
  * Save data to one of the managed PouchDb databases.
  */
-const _dbWrite = async function (_dbName, _dataLabel, _data) {
-    _addLog(`Writing ${_dataLabel} to ${_dbName}`)
+const _dbWrite = async function (_dbName, _dataId, _data) {
+    _addLog(`Writing ${_dataId} to ${_dbName}`)
 
     /* Verify config in cache. */
-    const exists = await _dbRead(_dbName, _dataLabel)
+    const exists = await _dbRead(_dbName, _dataId)
 
     /* Initialize result. */
     let result = null
@@ -46,7 +46,7 @@ const _dbWrite = async function (_dbName, _dataLabel, _data) {
     /* Initialize package. */
     let pkg = null
 
-    if (exists && exists._id === _dataLabel) {
+    if (exists && exists._id === _dataId) {
         /* Build package. */
         pkg = {
             ...exists,
@@ -56,7 +56,7 @@ const _dbWrite = async function (_dbName, _dataLabel, _data) {
     } else {
         /* Build package. */
         pkg = {
-            _id: _dataLabel,
+            _id: _dataId,
             data: _data,
             dataAdded:  new Date().toJSON(),
             lastUpdate: new Date().toJSON()
@@ -79,12 +79,12 @@ const _dbWrite = async function (_dbName, _dataLabel, _data) {
  *
  * Read data from one of the managed PouchDb databases.
  */
-const _dbRead = async function (_dbName, _dataLabel) {
-    // _addLog(`Reading ${_dataLabel} from ${_dbName}`)
+const _dbRead = async function (_dbName, _dataId) {
+    // _addLog(`Reading ${_dataId} from ${_dbName}`)
 
     /* Initialize options. */
     const options = {
-        key: _dataLabel,
+        key: _dataId,
         include_docs: true,
         descending: true
     }
@@ -111,16 +111,16 @@ const _dbRead = async function (_dbName, _dataLabel) {
  *
  * Delete data from one of the managed PouchDb databases.
  */
-const _dbDelete = async function (_dbName, _dataLabel) {
-    _addLog(`Deleting ${_dataLabel} from ${_dbName}`)
+const _dbDelete = async function (_dbName, _dataId) {
+    _addLog(`Deleting ${_dataId} from ${_dbName}`)
 
     /* Verify config in cache. */
-    const exists = await _dbRead(_dbName, _dataLabel)
+    const exists = await _dbRead(_dbName, _dataId)
 
     /* Initialize result. */
     let result = null
 
-    if (exists && exists._id === _dataLabel) {
+    if (exists && exists._id === _dataId) {
         /* Remove document from database. */
         result = await _dbManager[_dbName].remove(exists)
             .catch(_errorHandler)

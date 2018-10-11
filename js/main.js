@@ -1,8 +1,8 @@
 /* Initialize constants. */
-const WS_ENDPOINT = 'https://0pen.0net.io' // Websocket endpoint
+const WS_ENDPOINT = 'https://0pen.0net.io' // WebSockets endpoint
 const INFURA_API_KEY = '61a2428e6a4e41a695d876dfac323f0f' // Infura API key
 
-/* Initialize connection holder. */
+/* Initialize connection manager. */
 let conn = null
 
 /* Initialize Gatekeeper's Ready flag. */
@@ -22,16 +22,44 @@ let identity = null
 /* Initialize a no-op stub. */
 function noop() {}
 
-/* Initialize a holder to gatekeeper's (iframe). */
+/* Initialize a manager to gatekeeper's (iframe). */
 const gatekeeper = $('#gatekeeper')
-// console.log('GATEKEEPER', gatekeeper)
 
 /* Initialize the gatekeeper's content window. */
 const contentWindow = gatekeeper[0].contentWindow
 
 /* Initialize (global) constants. */
-BLOCK_HASH_LENGTH = 20
-CHUNK_LENGTH = 16384
+const BLOCK_HASH_LENGTH = 20
+const CHUNK_LENGTH = 16384
+
+/**
+ * Vue Application Model
+ */
+const vueModel = {
+    el: '#app',
+    data: () => ({
+        hello: null,
+        message: 'Hello Vue!',
+        notifList: [],
+        notifIndicator: true
+    }),
+    mounted: function () {
+        this.hello = 'world'
+    },
+    computed: {
+        _something: function () {
+            return true
+        }
+    },
+    methods: {
+        _init: function () {
+            return true
+        }
+    }
+}
+
+/* Initialize the Vue Model. */
+const vm = new Vue(vueModel)
 
 /**
  * jQuery says it's time to boogie!
@@ -47,6 +75,14 @@ $(document).ready(() => {
             /* Clear modals. */
             _clearModals(0)
         }
+    })
+
+    vm.notifList.push({
+        id: 1337,
+        heading: 'Londynn Lee',
+        description: 'tagged you and 18 others in a post.',
+        icon: 'https://i.imgur.com/mxle8nF.jpg',
+        dateCreated: 'October 03, 2017 8:45am'
     })
 
     /* Verify NO parent window! */

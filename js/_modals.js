@@ -1,4 +1,13 @@
 /**
+ * Clear ALL (Escapable) Modals
+ */
+const _clearModals = function () {
+    $('#modalAlert').modal('hide')
+    $('#modalDebug').modal('hide')
+    $('#modalWait').modal('hide')
+}
+
+/**
  * Modal Alert Handler
  */
 const _alert = function (_title, _subtitle, _body, _success) {

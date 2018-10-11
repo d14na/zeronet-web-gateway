@@ -1,3 +1,6 @@
+/* Initialize global managers. */
+const logMgr = []
+
 /**
  * Add Log Entry
  *
@@ -8,6 +11,9 @@ const _addLog = function (_message) {
     /* Build new log entry. */
     const timestamp = `➤ 0PEN ${moment().format('YYYY.MM.DD @ HH:mm:ss')}`
     const entry = `[ ${_message} ]`
+
+    /* Add to log manager. */
+    logMgr.push(`${timestamp} ${entry}`)
 
     /* Write to console. */
     console.info('%c' + timestamp + '%c ' + entry, 'color:red', 'color:black')
@@ -135,15 +141,6 @@ const _verifyConfig = (_config) => {
         /* Resolve the result. */
         _resolve(isValid)
     })
-}
-
-/**
- * Clear ALL (Escapable) Modals
- */
-const _clearModals = function () {
-    $('#modalAlert').modal('hide')
-    $('#modalDebug').modal('hide')
-    $('#modalWait').modal('hide')
 }
 
 /**

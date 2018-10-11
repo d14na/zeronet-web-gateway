@@ -28,7 +28,7 @@ const _search = async function () {
     /* Show "connecting..." notification. */
     await _wait('Peer-to-Peer Search', `Processing request for<br />[ <strong class="text-primary">${query}</strong> ]`, 'Please wait...')
 
-    /* Initialize holders. */
+    /* Initialize (data) managers. */
     let action = null
     let body = null
     let dataId = null
