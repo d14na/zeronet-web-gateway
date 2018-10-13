@@ -1,27 +1,11 @@
-/* Initialize search fields. */
-const btnZiteSearch = $('.btnZiteSearch')
-const inpZiteSearch = $('.inpZiteSearch')
-
-/**
- * Reset Search
- */
-const _resetSearch = () => {
-    /* Clear search input. */
-    inpZiteSearch.val('')
-
-    /* Remove focus from search elements. */
-    inpZiteSearch.blur()
-    btnZiteSearch.blur()
-}
-
 /**
  * Search
  *
  * Handles ALL submissions from the Zite | Search input.
  */
-const _search = async function () {
-    /* Retrieve search query. */
-    const query = inpZiteSearch.val()
+const _search = async function (_query) {
+    /* Set query. */
+    const query = _query
 
     _addLog(`User submitted a search for [ ${query} ]`)
 
@@ -111,7 +95,7 @@ const _search = async function () {
         })
 
         /* Reset search. */
-        _resetSearch()
+        app._resetSearch()
     } else if (query.slice(0, 7).toUpperCase() === 'GETFILE' && query.length > 10) {
         /* Set action. */
         action = 'GET'
@@ -126,7 +110,7 @@ const _search = async function () {
         innerPath = params.split(':')[1]
 
         /* Set data id. */
-        dataId = `${dest}:${innerPath}`
+        dataId = params
 
         /* Build package. */
         pkg = { action, dataId }
@@ -186,14 +170,6 @@ const _search = async function () {
     /* Send package. */
     if (_send0penMessage(pkg)) {
         /* Reset search. */
-        _resetSearch()
+        app._resetSearch()
     }
 }
-
-/* Initialize search listeners. */
-btnZiteSearch.click(_search)
-inpZiteSearch.on('keyup', (_event) => {
-    if (_event.keyCode === 13) {
-        _search()
-    }
-})

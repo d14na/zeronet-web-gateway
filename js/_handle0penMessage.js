@@ -86,25 +86,14 @@ const _handleWhoAmI = function (_data) {
 
     if (identity === peerId) {
         verification = 'VERIFIED'
+
+        /* Set network identity. */
+        const networkIdentity = `${ip} &bullet; ${city}, ${country}`
+
+        /* Set identity (display). */
+        app._setIdentity(networkIdentity)
     } else {
-        verification = 'FAILED'
-    }
-
-    /* Format body. */
-    body = `
-<h3>0PEN Identity<br />${identity}</h3>
-<hr /><h3>My Location<br />${ip}:${port} [ ${city}, ${country} ]</h3>
-<hr /><h3>${verification} Peer Id [ SHA-1(ip:port) ]<br />${peerId}</h3>
-<br /><hr /><br />
-    `
-
-    /* Validate body. */
-    if (body) {
-        /* Build gatekeeper package. */
-        pkg = { body, prepend: true }
-
-        /* Send package to gatekeeper. */
-        _gatekeeperMsg(pkg)
+        return _alert('Peer Id verificatino FAILED!')
     }
 
     /* Clear modals. */
@@ -329,7 +318,7 @@ const _handleInfo = async function (_data) {
     body += `<br /><textarea cols=60 rows=6>${blocks.toString('hex')}</textarea>`
 
     /* Calculate the number of hashes/blocks. */
-    const numBlocks = blocks.length / BLOCK_HASH_LENGTH
+    const numBlocks = blocks.length / app.BLOCK_HASH_LENGTH
     body += '<br /><hr />'
     body += `<br />    # Total Blocks : ${numBlocks}`
 
@@ -337,7 +326,7 @@ const _handleInfo = async function (_data) {
     const blockLength = parseInt(torrentInfo['piece length'])
     body += `<br />    Block Length   : ${blockLength} bytes`
 
-    const numBlockChunks = parseInt(blockLength / CHUNK_LENGTH)
+    const numBlockChunks = parseInt(blockLength / app.CHUNK_LENGTH)
     body += `<br />    (${numBlockChunks} chunks per block)`
 
     body += '<br /><hr />'
@@ -345,10 +334,10 @@ const _handleInfo = async function (_data) {
     /* Process the hash list. */
     for (let i = 0; i < numBlocks; i++) {
         /* Calculate the hash start. */
-        const start = (i * BLOCK_HASH_LENGTH)
+        const start = (i * app.BLOCK_HASH_LENGTH)
 
         /* Calculate the hash end. */
-        const end = (i * BLOCK_HASH_LENGTH) + BLOCK_HASH_LENGTH
+        const end = (i * app.BLOCK_HASH_LENGTH) + app.BLOCK_HASH_LENGTH
 
         /* Retrieve the block's hash. */
         const buf = blocks.slice(start, end)
@@ -368,6 +357,14 @@ const _handleInfo = async function (_data) {
 
         /* Send package to gatekeeper. */
         _gatekeeperMsg(pkg)
+
+        // TEMP Hard-coded request for block #7 (THE ENDGAME)
+        const action = 'GET'
+        const dataId = '01c227c8c9aac311f9365b163ea94708c27a7db4:7'
+        pkg = { action, dataId }
+        if(_send0penMessage(pkg)) {
+            console.log('ENDGAME REQUEST SENT')
+        }
     }
 
     /* Clear modals. */
@@ -415,14 +412,17 @@ const _handle0penMessage = async function (_data) {
         let action = null
 
         /* Retrieve the action from requests manager. */
-        action = _getAction(data)
-
-        console.log(`Retrieve ACTION [ ${action} ] from message.`)
-
-        /* Handle search condition. */
         if (data.search) {
             action = 'SEARCH'
+        } else if (data.action) {
+            /* Set action. */
+            action = data.action
+        } else {
+            /* Retrieve action from saved request. */
+            action = _getAction(data)
         }
+
+        console.log(`Retrieved ACTION [ ${action} ] from message.`)
 
         /* Validate action. */
         if (!action) {
@@ -457,11 +457,19 @@ const _handle0penMessage = async function (_data) {
                 if (data.dataId.split(':')[1] === 'torrent') {
                     return _handleInfo(data)
                 }
+            } else if (data.dataId && data.requestMgr) {
+                console.log('BLOCK REQUEST MANAGER', data.requestMgr)
+            } else if (data.dataId && data.blockBuffer) {
+                console.log('BLOCK BUFFER', Buffer.from(data.blockBuffer))
+                console.log('BLOCK BUFFER HASH', calcInfoHash(Buffer.from(data.blockBuffer)))
             } else {
                 return _addLog(`ERROR processing GET request for [ ${JSON.stringify(data)} ]`)
             }
 
             break
+        case 'NOTIF':
+            /* Handle response. */
+            return app.msgList.push(data)
         case 'SEARCH':
             /* Handle response. */
             return _handleSearch(data)

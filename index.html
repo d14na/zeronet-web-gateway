@@ -9,9 +9,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <title>Zer0net</title>
-    <meta name="author" content="D14na">
-    <meta name="description" content="What happens in the Zeronet, stays in the Zeronet™. The Zer0net Web Client is a secure portal for Internet users to gain their first decentralized web experience.">
-    <meta name="keywords" content="0net, zeronet, p2p, peer-to-peer, decentralized, decentralized web, crypto, bitcoin, ethereum">
+    <meta name="author" content="D14na - Decentralization Authority">
+    <meta name="description" content="What happens on Zeronet, stays on Zeronet™. Our gateway is a _secure_ portal for Internet users to gain their first decentralized web experience.">
+    <meta name="keywords" content="0net, zeronet, p2p, peer-to-peer, decentralized, decentralized web, torrent, bittorrent, crypto, bitcoin, ethereum, dapp">
 
     <!--[if IE]><link rel="shortcut icon" href="./images/favicon.ico"><![endif]-->
     <link rel="icon" href="./images/favicon.png">
@@ -63,8 +63,8 @@
             <h2 class="slim-logo d-none d-sm-flex"><a href="" class="text-secondary">Zer<span class="text-primary">0net</span></a></h2>
 
             <div class="search-box">
-                <input type="text" class="form-control inpZiteSearch" placeholder="Peer2Peer Search...">
-                <button class="btn btn-primary btnZiteSearch"><i class="fa fa-search"></i></button>
+                <input type="text" class="form-control" placeholder="Peer2Peer Search..." v-model="query" @keyup.enter="search">
+                <button class="btn btn-primary" @click="search"><i class="fa fa-search"></i></button>
             </div>
         </div>
 
@@ -73,20 +73,24 @@
         <div class="slim-header-right">
             <div class="dropdown dropdown-a">
                 <a href="javascript://" class="header-notification" data-toggle="dropdown">
-                    <i class="fa fa-bolt"></i>
+                    <i class="fa fa-wifi"></i>
                 </a>
                 <div class="dropdown-menu">
                     <div class="dropdown-menu-header">
-                        <h6 class="dropdown-menu-title">Network Status</h6>
+                        <h6 class="dropdown-menu-title">P2P Networking</h6>
                         <div>
-                            <a href="javascript://" @click="_networkStatusLogs">Show Logs</a>
+                            <a href="javascript://" @click="networkStatusLogs">Show Logs</a>
                             <a href="javascript://" class="networkStatusSettings">Settings</a>
                         </div>
                     </div>
 
                     <div class="dropdown-activity-list">
                         <div class="activity-label tx-16 text-center">
-                            <strong class="tx-16" :class="zeroPenStatusClass">{{ zeroPenStatus }}</strong>
+                            <strong class="tx-16" :class="networkStatusClass">{{ networkStatus }}</strong>
+                        </div>
+
+                        <div v-if="networkIdentity" class="activity-label tx-16 text-center">
+                            <span class="tx-9" v-html="networkIdentity"></span>
                         </div>
 
                         <div class="activity-item">
@@ -115,7 +119,7 @@
                     </div>
 
                     <div class="dropdown-list-footer">
-                        <a href="javascript://" @click="_networkStatusShowAll"><i class="fa fa-angle-down"></i> Show All Activities</a>
+                        <a href="javascript://" @click="networkStatusShowAll"><i class="fa fa-angle-down"></i> Show All Activities</a>
                     </div>
                 </div>
             </div>
@@ -124,34 +128,34 @@
 
             <div class="dropdown dropdown-b">
                 <a href="javascript://" class="header-notification" data-toggle="dropdown">
-                    <i class="fa fa-bell-o"></i>
-                    <span :class="{ indicator: notifIndicator }"></span>
+                    <i class="fa fa-at"></i>
+                    <span :class="{ indicator: msgIndicator }"></span>
                 </a>
                 <div class="dropdown-menu">
                     <div class="dropdown-menu-header">
-                        <h6 class="dropdown-menu-title">Notifications</h6>
+                        <h6 class="dropdown-menu-title">Messaging</h6>
                         <div>
-                            <a href="javascript://" @click="_notifMarkAllRead">Mark All as Read</a>
-                            <a href="javascript://" class="_notifSettings">Settings</a>
+                            <a href="javascript://" @click="msgNew">New Message</a>
+                            <a href="javascript://" @click="msgMarkAllRead">Mark All Read</a>
                         </div>
                     </div>
 
                     <div class="dropdown-list">
-                        <a v-for="notif in notifList" @click="_loadNotif(notif.id)" href="javascript://" class="dropdown-link">
+                        <a v-for="msg in msgList" @click="loadMsg(msg.id)" href="javascript://" class="dropdown-link">
                             <div class="media">
-                                <img :src="notif.icon" alt="">
+                                <img :src="msg.icon" alt="">
                                 <div class="media-body">
                                     <p>
-                                        <strong>{{ notif.heading }}</strong> {{ notif.description}}
+                                        <span v-html="_parseFlags(msg.flags)"></span><strong>{{ msg.heading }}</strong> {{ msg.description}}
                                     </p>
 
-                                    <span>{{ notif.dateCreated }}</span>
+                                    <span>{{ moment.unix(msg.dateCreated).format('llll') }}</span>
                                 </div>
                             </div>
                         </a>
 
                         <div class="dropdown-list-footer">
-                            <a href="javascript://" class="notifShowAll"><i class="fa fa-angle-down"></i> Show All Notifications</a>
+                            <a href="javascript://" @click="msgShowAll"><i class="fa fa-angle-down"></i> Show All Messages</a>
                         </div>
                     </div>
                 </div>
@@ -294,16 +298,14 @@
 <script src="./libs/bitcoin-message.js"></script>
 <script src="./libs/buffer.js"></script>
 <script src="./libs/calc-hash.js"></script>
+<script src="./libs/calc-info-hash.js"></script>
 
 <!-- Local JS Libraries -->
 <script src="./js/_conn.js"></script>
 <script src="./js/_gatekeeper.js"></script>
 <script src="./js/_handle0penMessage.js"></script>
 <script src="./js/_modals.js"></script>
-<script src="./js/_networkStatus.js"></script>
-<script src="./js/_notifications.js"></script>
 <script src="./js/_pouchDb.js"></script>
-<script src="./js/_profile.js"></script>
 <script src="./js/_search.js"></script>
 <script src="./js/_utils.js"></script>
 

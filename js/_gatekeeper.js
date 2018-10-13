@@ -68,7 +68,7 @@ const _gatekeeperMsg = function (_message = {}) {
  */
 const _authGatekeeper = async function () {
     /* Show "connecting..." notification. */
-    await _wait('Initailizing New Session', 'This will only take a moment.', 'Please wait...')
+    await _wait('Starting New Session', 'This will only take a moment.', 'Please wait...')
 
     /* Validate application initialization. */
     if (!gateReady) {

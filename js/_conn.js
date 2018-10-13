@@ -74,7 +74,7 @@ const _connOpen = async function () {
     _addLog('0PEN connected successfully.')
 
     /* Update connection status (display). */
-    vue._updateConnStatus('0PEN is Connected!', 'text-success')
+    app._setConnStatus('0PEN is Connected', 'text-success')
 
     /* Build package. */
     const pkg = {
@@ -99,5 +99,8 @@ const _connMessage = function (_event) {
  * Websocket - Connection Closed
  */
 const _connClose = function () {
-    console.info('0PEN connecton closed.')
+    console.info('0PEN connection closed.')
+
+    /* Update connection status (display). */
+    app._setConnStatus('0PEN is Disconnected', 'text-danger')
 }

@@ -10,7 +10,7 @@ const _addLog = function (_message) {
     const entry = `[ ${_message} ]`
 
     /* Add to log manager. */
-    vue.logMgr.push(`${timestamp} ${entry}`)
+    app.logMgr.push(`${timestamp} ${entry}`)
 
     /* Write to console. */
     console.info('%c' + timestamp + '%c ' + entry, 'color:red', 'color:black')
@@ -31,12 +31,12 @@ const _errorHandler = function (_err, _critical = false) {
 /**
  * Retrieve Action from Requests Manager
  */
-const _getAction = function (_msg) {
+const _getAction = function (_data) {
     /* Initialize action. */
     let action = null
 
     /* Retrieve request id. */
-    const requestId = _msg.requestId
+    const requestId = _data.requestId
 
     if (requestId && requestMgr[requestId]) {
         /* Retrieve action. */
@@ -45,7 +45,7 @@ const _getAction = function (_msg) {
         /* Remove request from manager. */
         // FIXME Verify that we do not need to persist this request
         //       other than to retrieve the ACTION
-        delete requestMgr[requestId]
+        // delete requestMgr[requestId]
     }
 
     /* Return the action. */

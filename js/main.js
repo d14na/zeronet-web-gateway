@@ -20,7 +20,7 @@ let account = null
 let identity = null
 
 /* Initialize a no-op stub. */
-function noop() {}
+// function noop() {}
 
 /* Initialize a manager to gatekeeper's (iframe). */
 const gatekeeper = $('#gatekeeper')
@@ -28,29 +28,40 @@ const gatekeeper = $('#gatekeeper')
 /* Initialize the gatekeeper's content window. */
 const contentWindow = gatekeeper[0].contentWindow
 
-/* Initialize (global) constants. */
-const BLOCK_HASH_LENGTH = 20
-const CHUNK_LENGTH = 16384
-
 /**
  * Vue Application Manager
  */
-const vueManager = {
+const vueAppManager = {
     el: '#app',
     data: () => ({
+        /* System */
         logMgr: [],
-        notifList: [],
-        profile: {},
-        zeroPenStatus: '0PEN is Disconnected!',
-        zeroPenStatusClass: 'text-danger'
+
+        /* Constants */
+        BLOCK_HASH_LENGTH: 20,
+        CHUNK_LENGTH: 16384,
+
+        /* Search */
+        query: null,
+
+        /* Network Status */
+        networkIdentity: null,
+        networkStatus: null,
+        networkStatusClass: null,
+
+        /* Messaging */
+        msgList: [],
+
+        /* Profile */
+        profile: {}
     }),
     mounted: function () {
         /* Initialize application. */
         this._init()
     },
     computed: {
-        notifIndicator: function () {
-            if (this.notifList.length) {
+        msgIndicator: function () {
+            if (this.msgList.length) {
                 return true
             } else {
                 return false
@@ -59,19 +70,49 @@ const vueManager = {
     },
     methods: {
         _init: function () {
+            /* Initialize network status. */
+            this.networkStatus = '0PEN is Disconnected'
+            this.networkStatusClass = 'text-danger'
+
             /* Initialize profile. */
             this.profile = {
                 icon: '/img/dark-hood-icon.jpg',
                 nickname: 'Guest Peer'
             }
         },
-        _loadNotif: function (_notifId) {
-            alert(`loading notification [ ${_notifId} ]`)
+        _parseFlags: function (_flags) {
+            if (_flags.indexOf('ADMIN') !== -1) {
+                return `<strong class="text-danger">[ADMIN]</strong> `
+            }
         },
-        _notifMarkAllRead: function () {
-            this.notifList = []
+        _setConnStatus: function (_status, _class) {
+            this.networkStatus = _status
+            this.networkStatusClass = _class
         },
-        _networkStatusLogs: function () {
+        _setIdentity: function (_identity) {
+            // 173.239.230.54 [ Toronto, Canada ]
+            this.networkIdentity = _identity
+        },
+        _resetSearch: function () {
+            /* Clear search input. */
+            this.query = ''
+
+            /* Set focus to window. */
+            window.focus()
+        },
+        loadMsg: function (_msgId) {
+            alert(`loading message [ ${_msgId} ]`)
+        },
+        msgMarkAllRead: function () {
+            this.msgList = []
+        },
+        msgNew: function () {
+            alert('new message')
+        },
+        msgShowAll: function () {
+            alert('load all messages')
+        },
+        networkStatusLogs: function () {
             /* Initialize body. */
             let body = ''
 
@@ -89,18 +130,22 @@ const vueManager = {
             /* Send package to gatekeeper. */
             _gatekeeperMsg(pkg)
         },
-        _networkStatusShowAll: function () {
+        networkStatusShowAll: function () {
             alert('_networkStatusShowAll')
         },
-        _updateConnStatus: function (_status, _class) {
-            this.zeroPenStatus = _status
-            this.zeroPenStatusClass = _class
+        search: function () {
+            if (!this.query) {
+                return _alert('Peer2Peer Search Error', 'Please enter a TERM to search.')
+            }
+
+            /* Call search library. */
+            _search(this.query)
         }
     }
 }
 
-/* Initialize the Vue Manager. */
-const vue = new Vue(vueManager)
+/* Initialize the application. */
+const app = new Vue(vueAppManager)
 
 /**
  * jQuery says it's time to boogie!
@@ -116,15 +161,6 @@ $(document).ready(() => {
             /* Clear modals. */
             _clearModals(0)
         }
-    })
-
-    // TEMP SAMPLE NOTIFICATION -- FOR TESTING PURPOSES ONLY
-    vue.notifList.push({
-        id: 1337,
-        heading: 'Londynn Lee',
-        description: 'tagged you and 18 others in a post.',
-        icon: 'https://i.imgur.com/mxle8nF.jpg',
-        dateCreated: 'October 03, 2017 8:45am'
     })
 
     /* Verify NO parent window! */
