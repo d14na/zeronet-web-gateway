@@ -270,13 +270,28 @@ const _handleZeroFile = async function (_data) {
  * NOTE This is the same as .TORRENT file.
  */
 const _handleInfo = async function (_data) {
+    /* Set info hash. */
+    const infoHash = _data.infoHash
+
+    /* Set metadata. */
+    const metadata = _data.metadata
+
+    /* Validate metadata. */
+    if (!metadata) {
+        return _errorHandler(
+            `Oops! No torrent info found in [ ${JSON.stringify(_data.info)} ]`, false)
+    }
+
     /* Retrieve torrent info. */
-    const torrentInfo = _data.torrentInfo
+    const torrentInfo = _verifyMetadata(infoHash, metadata)
     console.log('TORRENT INFO', torrentInfo)
 
-    /* Validate torrent info. */
-    if (!torrentInfo) {
-        return _errorHandler(`No torrent info found in [ ${JSON.stringify(_data.info)} ]`, false)
+    /* Verify torrent info. */
+    if (torrentInfo) {
+        _addLog(`[ ${infoHash} ] METADATA was verified successfully!`)
+    } else {
+        return _errorHandler(
+            `Oops! Torrent metadata FAILED verification [ ${JSON.stringify(_data.info)} ]`, false)
     }
 
     /* Initailize database values. */
@@ -452,7 +467,7 @@ const _handle0penMessage = async function (_data) {
                 if (data.innerPath === 'content.json') {
                     return _handleConfig(data)
                 }
-            } else if (data.infoHash && data.torrentInfo) {
+            } else if (data.infoHash && data.metadata) {
                 /* Verify info file. */
                 if (data.dataId.split(':')[1] === 'torrent') {
                     return _handleInfo(data)

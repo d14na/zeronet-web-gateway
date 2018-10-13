@@ -153,3 +153,34 @@ const _imgConverter = function (_input) { // fn BLOB => Binary => Base64 ?
 
     return base64
 }
+
+/**
+ * Verify Torrent Metadata
+ */
+const _verifyMetadata = function (_infoHash, _metadata) {
+    /* Convert the metadata to a buffer. */
+    const metadata = Buffer.from(_metadata, 'hex')
+
+    /* Decode the metadata buffer using bencode. */
+    const decoded = Bencode.decode(metadata)
+    // console.log('DECODED (RAW)', typeof decoded, decoded)
+
+    /* Retrieve the torrent info. */
+    const torrentInfo = decoded['info']
+    // console.log('Torrent INFO', torrentInfo)
+
+    /* Encode torrent info. */
+    const encoded = Bencode.encode(torrentInfo)
+    // console.log('Encoded torrent info', encoded)
+
+    /* Calculate verification hash (from encoded metadata). */
+    const verificationHash = calcInfoHash(encoded)
+    console.info(`Calculated the verification hash [ ${verificationHash} ]`)
+
+    /* Validate verficiation hash. */
+    if (verificationHash === _infoHash) {
+        return torrentInfo
+    } else {
+        return null
+    }
+}
