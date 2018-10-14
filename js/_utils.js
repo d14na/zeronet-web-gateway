@@ -204,7 +204,7 @@ const _verifyMetadata = function (_infoHash, _metadata) {
     // console.log('Encoded torrent info', encoded)
 
     /* Calculate verification hash (from encoded metadata). */
-    const verificationHash = calcInfoHash(encoded)
+    const verificationHash = _calcInfoHash(encoded)
     console.info(`Calculated the verification hash [ ${verificationHash} ]`)
 
     /* Validate verficiation hash. */
