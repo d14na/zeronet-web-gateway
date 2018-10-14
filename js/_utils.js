@@ -80,6 +80,36 @@ const _authRequest = async function (_identity) {
 }
 
 /**
+ * Calculate File Hash
+ *
+ * NOTE Only the first half of the SHA-512 is used in verification.
+ */
+const _calcFileHash = function (_data) {
+    /* Calculate the sha512 hash. */
+    const hash = CryptoJS.createHash('sha512').update(_data).digest()
+
+    /* Truncate to 256-bit and return hex. */
+    return hash.toString('hex').slice(0, 64)
+}
+
+/**
+ * Calculate Info Hash
+ */
+const _calcInfoHash = function (_data) {
+    /* Compute the SHA-1 hash of the data provided. */
+    return CryptoJS.createHash('sha1').update(_data).digest('hex')
+}
+
+/**
+ * Calculate Peer Identity
+ *
+ * NOTE Returned by WHOAMI request.
+ */
+const _calcIdentity = function (_data) {
+    return _calcInfoHash(_data)
+}
+
+/**
  * Signs a (data) proof provided by the server for account authentication.
  */
 const _signAuth = async (_proof) => {

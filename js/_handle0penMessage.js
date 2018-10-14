@@ -76,15 +76,10 @@ const _handleWhoAmI = function (_data) {
     /* Authorize connection. */
     _authRequest(address)
 
-    /* Calculate peer id. */
-    const peerId = CryptoJS.SHA1(address).toString()
-
     /* Initialize verification. */
     let verification = null
 
-    // console.log('VERIFICATION', identity, peerId, identity === peerId)
-
-    if (identity === peerId) {
+    if (identity === _calcIdentity(address)) {
         verification = 'VERIFIED'
 
         /* Set network identity. */
@@ -213,7 +208,7 @@ const _handleZeroFile = async function (_data) {
     console.log(`File length [ ${fileSize} ]`)
 
     /* Calculate file verifcation hash. */
-    const fileHash = calcHash(body)
+    const fileHash = _calcFileHash(body)
     console.log(`File verification hash [ ${fileHash} ]`)
 
     /* Verify the signature of the file. */
@@ -476,7 +471,7 @@ const _handle0penMessage = async function (_data) {
                 console.log('BLOCK REQUEST MANAGER', data.requestMgr)
             } else if (data.dataId && data.blockBuffer) {
                 console.log('BLOCK BUFFER', Buffer.from(data.blockBuffer))
-                console.log('BLOCK BUFFER HASH', calcInfoHash(Buffer.from(data.blockBuffer)))
+                console.log('BLOCK BUFFER HASH', _calcInfoHash(Buffer.from(data.blockBuffer)))
             } else {
                 return _addLog(`ERROR processing GET request for [ ${JSON.stringify(data)} ]`)
             }
