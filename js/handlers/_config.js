@@ -51,16 +51,21 @@ const _handleConfig = async function (_data) {
     let dbName = 'main'
     // NOTE data id DOES NOT exist for SEARCH requests (eg zitetags).
     let dataId = _data.dataId || `${_data.dest}:${_data.innerPath}`
-    let data = config
 
     /* Write to database. */
-    _dbWrite(dbName, dataId, data)
+    _dbWrite(dbName, dataId, config)
 
     /* Format (display) body. */
     let body = `
 <h1>${isSignatureValid ? 'File Signature is VALID' : 'File Signature is INVALID'}</h1>
 <pre><code>${JSON.stringify(config, null, 4)}</code></pre>
     `
+
+    /* Initialize action. */
+    let action = null
+
+    /* Initialize package. */
+    let pkg = null
 
     /* Start file verification. */
     for (let file in config.files) {
@@ -74,12 +79,22 @@ const _handleConfig = async function (_data) {
         let fileData = await _dbRead(dbName, file)
         console.log(`[ ${dataId} ]`, fileData)
 
-        break
-
         if (!fileData) {
-            console.log(`Requesting [ ${file} ] data.`)
+            console.log(`Requesting [ ${dataId} ] data.`)
+
+            /* Set action. */
+            action = 'GET'
+
+            /* Build package. */
+            pkg = { action, dataId }
+
+            /* Send message request. */
+            _send0penMessage(pkg)
+
             break
         }
+
+        break
     }
 
     /* Validate body. */

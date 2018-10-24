@@ -13,17 +13,11 @@ body {
 
 <script src="//cdn.0net.io/libs/jquery/3.3.1/js/jquery.min.js"></script>
 <script>
-/* Initialize security check flag. */
-// let isSecure = false
-
 /* Initialize parent manager. */
 let parent = null
 
 /* Initialize origin manager. */
 let origin = null
-
-/* Initialize response manager. */
-// let response = null
 
 /**
  * @notice Initialize the gateway.
@@ -62,14 +56,26 @@ const _callback = function (_message) {
 window.addEventListener('message', function (_event) {
     // console.log('Gatekeeper received event', _event)
 
-    /* Initialize message. */
-    let msg = null
+    /* Initailize body. */
+    let body = null
 
-    /* Initialize success. */
-    let success = null
+    /* Initailize data. */
+    let data = null
 
     /* Initailize error. */
     let error = null
+
+    /* Initialize message. */
+    let message = null
+
+    /* Initialize msg. */
+    let msg = null
+
+    /* Initialize pkg. */
+    let pkg = null
+
+    /* Initialize success. */
+    let success = null
 
     /* Verify parent is authorized and set. */
     if (!parent) {
@@ -82,7 +88,7 @@ window.addEventListener('message', function (_event) {
             msg = 'GATEKEEPER_IS_READY'
 
             /* Build message. */
-            const message = { success, msg }
+            message = { success, msg }
 
             /* Callback to parent. */
             return _callback(message)
@@ -94,20 +100,17 @@ window.addEventListener('message', function (_event) {
             msg = 'Authorization failed!'
 
             /* Build message. */
-            const message = { error, msg }
+            message = { error, msg }
 
             /* Callback to parent. */
             return _callback(message)
         }
     }
 
-    /* Initialize message object. */
-    let message = null
-
     /* All messages should be JSON strings, so let's try to decode to an object. */
     try {
         /* Retrieve the data. */
-        const data = _event.data
+        data = _event.data
 
         /* Validate data. */
         if (!data) {
@@ -115,7 +118,7 @@ window.addEventListener('message', function (_event) {
         }
 
         /* Retrieve html body. */
-        const body = data.body
+        body = data.body
 
         if (data.prepend) {
             /* Prepend the data to the frame's html body. */
@@ -139,10 +142,10 @@ window.addEventListener('message', function (_event) {
         msg = _err.message
 
         /* Build error. */
-        const msg = { error, msg }
+        pkg = { error, msg }
 
         /* Callback to parent. */
-        return _callback(msg)
+        return _callback(pkg)
     }
 })
 </script>

@@ -2,8 +2,8 @@
  * Hanlde Zeronet File
  */
 const _handleZeroFile = async function (_data) {
-
-    config = await _dbRead('main', `${dest}:content.json`)
+    /* Retrieve configuration. */
+    const config = await _dbRead('main', `${_data.dest}:content.json`)
     console.log('FOUND CONFIG', config)
 
     /* Validate config. */
@@ -11,41 +11,43 @@ const _handleZeroFile = async function (_data) {
         return _addLog('Problem retrieving config (content.json) from database.')
     }
 
-    /* Retrieve inner path. */
-    innerPath = data.innerPath
-
-    /* Parse file extension. */
-    fileExt = innerPath.split('.').pop()
+    /* Set inner path. */
+    const innerPath = _data.innerPath
 
     /* Validate inner path. */
     if (!innerPath) {
         return _addLog(`Problem retrieving inner path [ ${innerPath} ]`)
     }
 
-    /* Retrieve files list. */
-    files = config.data.files
+    /* Set files list. */
+    const files = config.data.files
 
-    /* Retrieve config size. */
+    /* Set (configuraton) file size. */
     const configSize = files[innerPath].size
 
-    /* Retrieve config hash. */
+    /* Set (configuration) hash. */
     const configHash = files[innerPath].sha512
+
     console.log(`${innerPath} size/hash`, configSize, configHash)
 
-    /* Parse body. */
-    if (data.body && data.body.type && data.body.type === 'Buffer') {
-        body = Uint8Array.from(data.body.data)
-    } else {
-        body = data.body
+    /* Initialize body. */
+    let body = null
+
+    /* Parse body (into buffer). */
+    if (_data.body) {
+        body = Buffer.from(_data.body)
     }
 
     /* Calculate file size. */
     const fileSize = parseInt(body.length)
-    console.log(`File length [ ${fileSize} ]`)
+    console.log(`File size/length [ ${fileSize} ]`)
 
     /* Calculate file verifcation hash. */
     const fileHash = _calcFileHash(body)
     console.log(`File verification hash [ ${fileHash} ]`)
+
+    /* Initialize valid flag. */
+    let isValid = null
 
     /* Verify the signature of the file. */
     if (configSize === fileSize && configHash === fileHash) {
@@ -54,19 +56,30 @@ const _handleZeroFile = async function (_data) {
         isValid = false
     }
 
-    _addLog(`${innerPath} validation hash is ${isValid}'`)
+    _addLog(`${innerPath} validation is [ ${isValid} ]`)
 
     if (isValid) {
         /* Initailize database values. */
-        dbName = 'files'
-        dataId = `${dest}:${innerPath}`
-        data = body
+        const dbName = 'files'
+        const dataId = `${_data.dest}:${_data.innerPath}`
 
         /* Write to database. */
-        _dbWrite(dbName, dataId, data)
+        _dbWrite(dbName, dataId, body)
 
-        /* Decode body. */
+        /* Initialize file extension. */
+        // NOTE Some files (eg. LICENSE, do not have extensions).
+        let fileExt = ''
+
+        if (innerPath.indexOf('.') !== -1) {
+            /* Retrieve the file extention. */
+            fileExt = innerPath.split('.').pop()
+        }
+
+        /* Decode body (for UI display). */
         switch (fileExt.toUpperCase()) {
+        case '': // NOTE Support for extension-less files (eg LICENSE).
+        //               Are there ANY binary files in this category??
+        // TODO Add support for ALL TXT files (require string decoding).
         case 'HTM':
         case 'HTML':
             body = body.toString()
@@ -87,6 +100,8 @@ const _handleZeroFile = async function (_data) {
         /* Build gatekeeper package. */
         pkg = { body }
     }
+
+    console.log('SENDING GATEKEEPER PKG', pkg)
 
     /* Send package to gatekeeper. */
     _gatekeeperMsg(pkg)

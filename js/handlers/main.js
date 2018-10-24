@@ -87,6 +87,8 @@ const _handle0penMessage = async function (_data) {
                 /* Verify config file. */
                 if (data.innerPath === 'content.json') {
                     return _handleConfig(data)
+                } else {
+                    return _handleZeroFile(data)
                 }
             } else if (data.infoHash && data.metadata) { // Torrent
                 /* Verify info file. */
