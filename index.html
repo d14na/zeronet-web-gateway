@@ -10,7 +10,7 @@
 
     <title>Zer0net</title>
     <meta name="author" content="D14na - Decentralization Authority">
-    <meta name="description" content="What happens on Zeronet, stays on Zeronet™. Our gateway is a _secure_ portal for Internet users to gain their first decentralized web experience.">
+    <meta name="description" content="A secure gateway for Internet users to easily access a TrustLess Web™ experience. What happens on Zeronet, stays on Zeronet™.">
     <meta name="keywords" content="0net, zeronet, p2p, peer-to-peer, decentralized, decentralized web, torrent, bittorrent, crypto, bitcoin, ethereum, dapp">
 
     <!--[if IE]><link rel="shortcut icon" href="./images/favicon.ico"><![endif]-->
@@ -44,21 +44,29 @@
     }
     </style>
 
-    <!-- Matomo -->
+    <!-- Matomo (Analytics) -->
+    <!--
+    Matomo (formerly Piwik) is an open-source analytics platform used to:
+        1. Monitor the overall health of the Zer0net Web Gateway.
+        2. Provide insights into usage patterns.
+        3. Identify bugs and errors.
+
+    For more information, please visit https://matomo.org/
+    -->
     <script type="text/javascript">
-      var _paq = _paq || [];
-      /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
-      _paq.push(['trackPageView']);
-      _paq.push(['enableLinkTracking']);
-      (function() {
-        var u="//matomo.d14na.org/";
-        _paq.push(['setTrackerUrl', u+'piwik.php']);
-        _paq.push(['setSiteId', '2']);
-        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-        g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
-      })();
+    var _paq = _paq || []
+    _paq.push(['trackPageView'])
+    _paq.push(['enableLinkTracking']);
+
+    (function() {
+        var u='https://matomo.d14na.org/'
+        _paq.push(['setTrackerUrl', u+'piwik.php'])
+        _paq.push(['setSiteId', '2'])
+        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0]
+        g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s)
+    })()
     </script>
-    <!-- End Matomo Code -->
+    <!-- End Matomo (Analytics) -->
 </head>
 
 <body>
@@ -294,13 +302,11 @@
 <script src="https://cdn.0net.io/libs/bootstrap/4.0.0/js/bootstrap.js"></script>
 <script src="https://cdn.0net.io/libs/vue/2.5.17/js/vue.min.js"></script>
 <script src="https://cdn.0net.io/libs/pouchdb/7.0.0/js/pouchdb.min.js"></script>
+<script src="https://cdn.0net.io/libs/sockjs-client/1.1.4/js/sockjs.min.js"></script>
+<script src="https://cdn.0net.io/libs/web3/1.0.0/js/web3.min.js"></script>
 <script src="https://cdn.0net.io/libs/moment/2.22.2/js/moment.min.js"></script>
 <script src="https://cdn.0net.io/libs/numeral/2.0.6/js/numeral.min.js"></script>
 <script src="https://cdn.0net.io/libs/FileSaver/1.3.8/js/FileSaver.min.js"></script>
-
-<!-- Communications JS Libraries -->
-<script src="https://cdn.0net.io/libs/sockjs-client/1.1.4/js/sockjs.min.js"></script>
-<script src="https://cdn.0net.io/libs/web3/1.0.0/js/web3.min.js"></script>
 
 <!-- Browserified JS Libraries -->
 <script src="./libs/bencode.js"></script>

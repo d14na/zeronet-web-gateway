@@ -76,7 +76,7 @@ const _handleConfig = async function (_data) {
         dataId = `${_data.dest}:${file}`
         console.log(`Verifying [ ${dataId} ] in [ ${dbName} ]`)
 
-        let fileData = await _dbRead(dbName, file)
+        let fileData = await _dbRead(dbName, dataId)
         console.log(`[ ${dataId} ]`, fileData)
 
         if (!fileData) {
@@ -93,8 +93,6 @@ const _handleConfig = async function (_data) {
 
             break
         }
-
-        break
     }
 
     /* Validate body. */

@@ -77,18 +77,32 @@ const _handleZeroFile = async function (_data) {
 
         /* Decode body (for UI display). */
         switch (fileExt.toUpperCase()) {
+        // TODO Add support for ALL string formats.
         case '': // NOTE Support for extension-less files (eg LICENSE).
         //               Are there ANY binary files in this category??
-        // TODO Add support for ALL TXT files (require string decoding).
+        case 'CSS':
         case 'HTM':
         case 'HTML':
+        case 'JS':
+        case 'MD':
+        case 'XML':
             body = body.toString()
+            break
+        case 'GIF':
+            body = `<img class="img-fluid" src="data:image/gif;base64,${_imgConverter(body)}" width="300">`
+            break
+        case 'JPG':
+        case 'JPEG':
+            body = `<img class="img-fluid" src="data:image/jpeg;base64,${_imgConverter(body)}" width="300">`
             break
         case 'PNG':
             body = `<img class="img-fluid" src="data:image/png;base64,${_imgConverter(body)}" width="300">`
             break
         default:
             // NOTE Leave as buffer (for binary files).
+
+            // TODO Decide if we want to default to BINARY or STRING
+            //      for any UNKNOWN file types.
         }
 
         /* Build gatekeeper package. */
@@ -100,8 +114,6 @@ const _handleZeroFile = async function (_data) {
         /* Build gatekeeper package. */
         pkg = { body }
     }
-
-    console.log('SENDING GATEKEEPER PKG', pkg)
 
     /* Send package to gatekeeper. */
     _gatekeeperMsg(pkg)
