@@ -58,7 +58,7 @@ const _dbWrite = async function (_dbName, _dataId, _data) {
         pkg = {
             _id: _dataId,
             data: _data,
-            dataAdded:  new Date().toJSON(),
+            dateAdded:  new Date().toJSON(),
             lastUpdate: new Date().toJSON()
         }
     }

@@ -59,6 +59,51 @@ const _search = async function (_query) {
             _clearModals()
         })
 
+        $('.btnModalDebugTest5').click(async () => {
+            /* Initialize data. */
+            let data = Buffer.alloc(0)
+
+            /* Initialize block. */
+            let block = null
+
+            /* Initialize body. */
+            let body = ''
+
+            /* Set endpoint. */
+            const endpoint = '01c227c8c9aac311f9365b163ea94708c27a7db4'
+
+            /* Process MAIN database. */
+            block = await _dbRead('main', `${endpoint}:torrent`)
+                .catch(_errorHandler)
+            const decoded = Bencode.decode(block.data)
+            const filename = Buffer.from(decoded['info']['name']).toString()
+            console.log('decoded', decoded)
+            console.log('FILE NAME', filename)
+
+            /* Process BLOCKS database. */
+            for (let i = 0; i < 8; i++) {
+                block = await _dbRead('blocks', `${endpoint}:${i}`)
+                    .catch(_errorHandler)
+                data = Buffer.concat([data, Buffer.from(block['data'])])
+            }
+            const txtSample = data.slice(-78)
+            const ebook = data.slice(0, -78)
+            body += `<h5>Text Sample: ${txtSample.length}</h5><pre><code>${Buffer.from(txtSample).toString()}</code></pre>`
+            body += `<h5>Magic Number: ${Buffer.from(ebook.slice(0, 4)).toString('hex')}</h5>`
+            body += `<h5>E-book: ${ebook.length}</h5><pre><code>${ebook}</code></pre>`
+
+            /* Build gatekeeper package. */
+            const pkg = { body, prepend: true }
+
+            /* Send package to gatekeeper. */
+            _gatekeeperMsg(pkg)
+
+            const blob = new Blob([ebook], { type: 'application/epub+zip' })
+            saveAs(blob, filename + '.epub')
+
+            _clearModals()
+        })
+
         $('.btnModalDebugDbDumps').click(async () => {
             /* Initialize options. */
             options = {

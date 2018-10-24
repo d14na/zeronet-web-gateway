@@ -8,7 +8,7 @@ const _handleInfo = async function (_data) {
     const infoHash = _data.infoHash
 
     /* Set metadata. */
-    const metadata = _data.metadata
+    const metadata = Buffer.from(_data.metadata)
 
     /* Validate metadata. */
     if (!metadata) {
@@ -31,7 +31,7 @@ const _handleInfo = async function (_data) {
     /* Initailize database values. */
     const dbName = 'main'
     const dataId = _data.dataId
-    const data = _data
+    const data = metadata
 
     /* Write to database. */
     _dbWrite(dbName, dataId, data)
@@ -108,12 +108,22 @@ const _handleInfo = async function (_data) {
         _gatekeeperMsg(pkg)
 
         // TEMP Hard-coded request for block #7 (THE ENDGAME)
-        const action = 'GET'
-        const dataId = '01c227c8c9aac311f9365b163ea94708c27a7db4:7'
-        pkg = { action, dataId }
-        if(_send0penMessage(pkg)) {
-            console.log('ENDGAME REQUEST SENT')
-        }
+        // const action = 'GET'
+        // let dataId = '01c227c8c9aac311f9365b163ea94708c27a7db4:0'
+        // pkg = { action, dataId }
+        // if(_send0penMessage(pkg)) {
+        //     console.log(`Send request for [ ${dataId} ]`)
+        // }
+        // dataId = '01c227c8c9aac311f9365b163ea94708c27a7db4:1'
+        // pkg = { action, dataId }
+        // if(_send0penMessage(pkg)) {
+        //     console.log(`Send request for [ ${dataId} ]`)
+        // }
+        // dataId = '01c227c8c9aac311f9365b163ea94708c27a7db4:2'
+        // pkg = { action, dataId }
+        // if(_send0penMessage(pkg)) {
+        //     console.log(`Send request for [ ${dataId} ]`)
+        // }
     }
 
     /* Clear modals. */

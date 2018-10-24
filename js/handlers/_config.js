@@ -5,7 +5,7 @@ const _handleConfig = async function (_data) {
     console.log('CONFIG DATA', _data)
 
     if (!_data.body) {
-        return console.log('ERROR retrieving config body', _data)
+        return console.error('ERROR retrieving config body', _data)
     }
 
     /* Initialize config. */
@@ -17,7 +17,7 @@ const _handleConfig = async function (_data) {
 
         console.log('CONFIG', config)
     } catch (_err) {
-        console.log('ERROR parsing config data', _err)
+        console.error('ERROR parsing config data', _err)
     }
 
     /* Verify the signature of the configuraton (content.json). */

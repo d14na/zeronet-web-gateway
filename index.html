@@ -256,7 +256,7 @@
 
             <div class="modal-body pd-25">
                 <h5 class="lh-3 mg-b-20 tx-inverse hover-primary">
-                    Oops! Looks like you need some technical support.
+                    Oh! Looks like you need some technical support.
                 </h5>
 
                 <p>
@@ -266,6 +266,7 @@
                 <button type="button" class="btn btn-primary btnModalDebugTest2">Run Test #2</button>
                 <button type="button" class="btn btn-primary btnModalDebugTest3">Run Test #3</button>
                 <button type="button" class="btn btn-primary btnModalDebugTest4">Run Test #4</button>
+                <button type="button" class="btn btn-primary btnModalDebugTest5">Run Test #5</button>
                 <button type="button" class="btn btn-primary btnModalDebugDbDumps">Dump Databases</button>
             </div>
 
@@ -282,20 +283,24 @@
 </div>
 
 <!-- Core JS Libraries -->
-<script src="//cdn.0net.io/libs/jquery/3.3.1/js/jquery.min.js"></script>
-<script src="//cdn.0net.io/libs/popper.js/1.12.9/js/popper.js"></script>
-<script src="//cdn.0net.io/libs/bootstrap/4.0.0/js/bootstrap.js"></script>
-<script src="//cdn.0net.io/libs/vue/2.5.17/js/vue.min.js"></script>
-<script src="//cdn.0net.io/libs/pouchdb/7.0.0/js/pouchdb.min.js"></script>
-<script src="//cdn.0net.io/libs/moment/2.22.2/js/moment.min.js"></script>
+<script src="https://cdn.0net.io/libs/jquery/3.3.1/js/jquery.min.js"></script>
+<script src="https://cdn.0net.io/libs/popper.js/1.12.9/js/popper.js"></script>
+<script src="https://cdn.0net.io/libs/bootstrap/4.0.0/js/bootstrap.js"></script>
+<script src="https://cdn.0net.io/libs/vue/2.5.17/js/vue.min.js"></script>
+<script src="https://cdn.0net.io/libs/pouchdb/7.0.0/js/pouchdb.min.js"></script>
+<script src="https://cdn.0net.io/libs/moment/2.22.2/js/moment.min.js"></script>
+<script src="https://cdn.0net.io/libs/numeral/2.0.6/js/numeral.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.min.js"></script>
 
 <!-- Communications JS Libraries -->
-<script src="//cdn.0net.io/libs/sockjs-client/1.1.4/js/sockjs.min.js"></script>
-<script src="//cdn.0net.io/libs/web3/1.0.0/js/web3.min.js"></script>
+<script src="https://cdn.0net.io/libs/sockjs-client/1.1.4/js/sockjs.min.js"></script>
+<script src="https://cdn.0net.io/libs/web3/1.0.0/js/web3.min.js"></script>
 
 <!-- Browserified JS Libraries -->
 <script src="./libs/bencode.js"></script>
 <script src="./libs/bitcoin-message.js"></script>
+<script src="./libs/bitcore-namecoin.js"></script>
 <script src="./libs/buffer.js"></script>
 <script src="./libs/crypto-js.js"></script>
 
@@ -309,6 +314,7 @@
 
 <!-- Message Handlers -->
 <script src="./js/handlers/_auth.js"></script>
+<script src="./js/handlers/_block.js"></script>
 <script src="./js/handlers/_config.js"></script>
 <script src="./js/handlers/_info.js"></script>
 <script src="./js/handlers/_search.js"></script>

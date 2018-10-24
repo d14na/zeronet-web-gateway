@@ -97,14 +97,8 @@ const _handle0penMessage = async function (_data) {
                 //      Already in 0NET cache and no need to wait for seeders.
                 console.log('BLOCK REQUEST MANAGER', data.requestMgr)
             } else if (data.dataId && data.blockBuffer) {
-                /* Retrieve block buffer. */
-                const buf = Buffer.from(data.blockBuffer)
-
-                /* Calculate verification hash. */
-                const verificationHash = _calcInfoHash(buf)
-                console.log('VERIFICATION HASH', verificationHash)
-
-                console.log('BLOCK BUFFER', buf)
+                /* Handle response. */
+                return _handleBlock(data)
             } else {
                 return _addLog(`ERROR processing GET request for [ ${JSON.stringify(data)} ]`)
             }

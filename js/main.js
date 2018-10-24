@@ -172,7 +172,7 @@ $(document).ready(() => {
     //
     //         if (Notification.permission === 'denied') {
     //             console.log('Requesting have been denied!')
-    //             alert('Oops! Looks like you DO NOT want to be IN THE KNOW!')
+    //             alert('Oh! Looks like you DO NOT want to be IN THE KNOW!')
     //         } else if (Notification.permission !== 'granted') {
     //             console.log('Requesting permission now!')
     //             Notification.requestPermission()
