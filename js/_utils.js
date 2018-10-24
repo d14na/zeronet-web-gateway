@@ -1,8 +1,8 @@
 /**
  * Add Log Entry
  *
- * NOTE All significant activity (that is NOT directly alerted to the user)
- *      is recorded by this log window.
+ * NOTE All significant activities (that are NOT directly alerted to the user)
+ *      are handled and recorded by this logging event.
  */
 const _addLog = function (_message) {
     /* Build new log entry. */
@@ -10,7 +10,7 @@ const _addLog = function (_message) {
     const entry = `[ ${_message} ]`
 
     /* Add to log manager. */
-    app.logMgr.push(`${timestamp} ${entry}`)
+    App.logMgr.push(`${timestamp} ${entry}`)
 
     /* Write to console. */
     console.info('%c' + timestamp + '%c ' + entry, 'color:red', 'color:black')
@@ -18,6 +18,8 @@ const _addLog = function (_message) {
 
 /**
  * Error Handler
+ *
+ * TODO How should we handle CRITICAL errors??
  */
 const _errorHandler = function (_err, _critical = false) {
     /* Handle critical errors with a throw (terminate application). */
@@ -42,6 +44,8 @@ const _getAction = function (_data) {
         /* Retrieve action. */
         action = requestMgr[requestId].action
 
+        // TODO Completed requests should be CANCELLED by messaging the network.
+
         /* Remove request from manager. */
         // FIXME Verify that we do not need to persist this request
         //       other than to retrieve the ACTION
@@ -63,7 +67,7 @@ const _authRequest = async function (_identity) {
     const nonce = moment().unix()
 
     const proof = `${network}:${_identity}:${nonce}`
-    _addLog(`Generated authentication (${proof})`)
+    // console.log('Proof', proof)
 
     /* Set action. */
     const action = 'AUTH'
@@ -71,6 +75,7 @@ const _authRequest = async function (_identity) {
     /* Retrieve signed proof. */
     const sig = await _signAuth(proof)
     // console.log('Signed proof', sig)
+    _addLog(`Authentication proof: [ ${proof} ]`)
 
     /* Build package. */
     const pkg = { action, sig }
@@ -115,8 +120,8 @@ const _calcIdentity = function (_data) {
 const _signAuth = async (_proof) => {
     /* Initialize a new web3 object to our provider. */
     const web3 = new Web3()
-    // const web3 = new Web3(new Web3.providers.HttpProvider('https://mainnet.infura.io/v3/' + INFURA_API_KEY))
 
+    // TEMP FOR DEVELOPMENT/TESTING PURPOSES ONLY
     // const privateKey = '0x9b2495bf3d9f3116a4ec7301cc2d8cd8c9d86b4f09b813a8455d8db18d6eb00' // 0xF51175cF846f88b9419228905d63dcDd43aeC9E8 (invalid)
     // const privateKey = '9b2495bf3d9f3116a4ec7301cc2d8cd8c9d86b4f09b813a8455d8db18d6eb00d' // 0xC3e7b7f10686263f13fF2fA2313Dc00c2592481d (invalid)
     const privateKey = '0x9b2495bf3d9f3116a4ec7301cc2d8cd8c9d86b4f09b813a8455d8db18d6eb00d' // 0x65C44EcAc56040a63da60bf5cA297951780eFEd1 (valid)
@@ -174,18 +179,31 @@ const _verifyConfig = (_config) => {
  * Image Converter
  */
 const _imgConverter = function (_input) { // fn BLOB => Binary => Base64 ?
-    let uInt8Array = new Uint8Array(_input)
+    /* Initialize input (typed array). */
+    const uInt8Array = new Uint8Array(_input)
+
+    /* Initialize length counter. */
     let i = uInt8Array.length
 
+    /* Initialize binary string holder. */
     let biStr = [] //new Array(i);
-    while (i--) { biStr[i] = String.fromCharCode(uInt8Array[i])  }
-    let base64 = window.btoa(biStr.join(''))
 
+    /* Perform byte(s) conversion. */
+    while (i--) {
+        biStr[i] = String.fromCharCode(uInt8Array[i])
+    }
+
+    /* Convert to base64. */
+    const base64 = window.btoa(biStr.join(''))
+
+    /* Return base64. */
     return base64
 }
 
 /**
  * Verify Torrent Metadata
+ *
+ * NOTE A torrent's info hash is derived from its metadata.
  */
 const _verifyMetadata = function (_infoHash, _metadata) {
     /* Convert the metadata to a buffer. */

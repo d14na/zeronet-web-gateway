@@ -67,7 +67,7 @@ const _handleInfo = async function (_data) {
     body += `<br /><textarea cols=60 rows=6>${blocks.toString('hex')}</textarea>`
 
     /* Calculate the number of hashes/blocks. */
-    const numBlocks = blocks.length / app.BLOCK_HASH_LENGTH
+    const numBlocks = blocks.length / App.BLOCK_HASH_LENGTH
     body += '<br /><hr />'
     body += `<br />    # Total Blocks : ${numBlocks}`
 
@@ -75,7 +75,7 @@ const _handleInfo = async function (_data) {
     const blockLength = parseInt(torrentInfo['piece length'])
     body += `<br />    Block Length   : ${blockLength} bytes`
 
-    const numBlockChunks = parseInt(blockLength / app.CHUNK_LENGTH)
+    const numBlockChunks = parseInt(blockLength / App.CHUNK_LENGTH)
     body += `<br />    (${numBlockChunks} chunks per block)`
 
     body += '<br /><hr />'
@@ -83,10 +83,10 @@ const _handleInfo = async function (_data) {
     /* Process the hash list. */
     for (let i = 0; i < numBlocks; i++) {
         /* Calculate the hash start. */
-        const start = (i * app.BLOCK_HASH_LENGTH)
+        const start = (i * App.BLOCK_HASH_LENGTH)
 
         /* Calculate the hash end. */
-        const end = (i * app.BLOCK_HASH_LENGTH) + app.BLOCK_HASH_LENGTH
+        const end = (i * App.BLOCK_HASH_LENGTH) + App.BLOCK_HASH_LENGTH
 
         /* Retrieve the block's hash. */
         const buf = blocks.slice(start, end)

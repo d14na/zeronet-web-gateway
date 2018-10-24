@@ -74,7 +74,7 @@ const _connOpen = async function () {
     _addLog('0PEN connected successfully.')
 
     /* Update connection status (display). */
-    app._setConnStatus('0PEN is Connected', 'text-success')
+    App._setConnStatus('0PEN is Connected', 'text-success')
 
     /* Build package. */
     const pkg = {
@@ -102,5 +102,5 @@ const _connClose = function () {
     console.info('0PEN connection closed.')
 
     /* Update connection status (display). */
-    app._setConnStatus('0PEN is Disconnected', 'text-danger')
+    App._setConnStatus('0PEN is Disconnected', 'text-danger')
 }

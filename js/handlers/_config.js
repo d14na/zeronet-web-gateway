@@ -15,9 +15,20 @@ const _handleConfig = async function (_data) {
         /* Parse config data. */
         config = JSON.parse(Buffer.from(_data.body))
 
-        console.log('CONFIG', config)
+        console.log('CONFIG BODY', config)
     } catch (_err) {
         console.error('ERROR parsing config data', _err)
+    }
+
+    /* Validate config. */
+    if (!config) {
+        /* Show alert. */
+        return _alert(
+            'Oops! Download Error!',
+            'Failed to download zite configuration.',
+            'Please try your request again...',
+            false
+        )
     }
 
     /* Verify the signature of the configuraton (content.json). */
@@ -30,27 +41,46 @@ const _handleConfig = async function (_data) {
         /* Show alert. */
         return _alert(
             'Oops! Validation Error!',
-            'Failed to validate signature!',
+            'Failed to validate zite configuration file.',
             'Please try your request again...',
             false
         )
     }
 
     /* Initailize database values. */
-    const dbName = 'main'
+    let dbName = 'main'
     // NOTE data id DOES NOT exist for SEARCH requests (eg zitetags).
-    const dataId = config.dataId || `${config.dest}:${config.innerPath}`
-    const data = config
+    let dataId = _data.dataId || `${_data.dest}:${_data.innerPath}`
+    let data = config
 
     /* Write to database. */
     _dbWrite(dbName, dataId, data)
 
     /* Format (display) body. */
-    body = `
-<br /><hr /><br />
+    let body = `
 <h1>${isSignatureValid ? 'File Signature is VALID' : 'File Signature is INVALID'}</h1>
 <pre><code>${JSON.stringify(config, null, 4)}</code></pre>
     `
+
+    /* Start file verification. */
+    for (let file in config.files) {
+        /* Set db name. */
+        dbName = 'files'
+
+        /* Set data id. */
+        dataId = `${_data.dest}:${file}`
+        console.log(`Verifying [ ${dataId} ] in [ ${dbName} ]`)
+
+        let fileData = await _dbRead(dbName, file)
+        console.log(`[ ${dataId} ]`, fileData)
+
+        break
+
+        if (!fileData) {
+            console.log(`Requesting [ ${file} ] data.`)
+            break
+        }
+    }
 
     /* Validate body. */
     if (body) {

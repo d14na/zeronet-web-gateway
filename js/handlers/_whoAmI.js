@@ -33,7 +33,7 @@ const _handleWhoAmI = function (_data) {
         const networkIdentity = `${ip} &bullet; ${city}, ${country}`
 
         /* Set identity (display). */
-        app._setIdentity(networkIdentity)
+        App._setIdentity(networkIdentity)
     } else {
         return _alert('Peer Id verificatino FAILED!')
     }

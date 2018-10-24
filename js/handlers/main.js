@@ -4,6 +4,7 @@
  * NOTE Currently this is un-implemented.
  */
 const _handleUnknown = function (_data) {
+    console.error('UNKNOWN REQUEST HANDLER', _data)
     return // FIXME We may not implement this report
 
     /* Format body. */
@@ -36,7 +37,7 @@ const _handle0penMessage = async function (_data) {
         if (data.error) {
             /* Show alert. */
             return _alert(
-                'Peer-to-Peer Search Error',
+                '0PEN Network Error',
                 data.error,
                 'Please try your request again...',
                 false
@@ -74,7 +75,7 @@ const _handle0penMessage = async function (_data) {
             /* Handle response. */
             return _handleAuth(data)
         case 'GET':
-            if (data.dest && data.innerPath) {
+            if (data.dest && data.innerPath) { // Zeronet
                 /* Retrieve destination. */
                 dest = data.dest
 
@@ -87,16 +88,16 @@ const _handle0penMessage = async function (_data) {
                 if (data.innerPath === 'content.json') {
                     return _handleConfig(data)
                 }
-            } else if (data.infoHash && data.metadata) {
+            } else if (data.infoHash && data.metadata) { // Torrent
                 /* Verify info file. */
                 if (data.dataId.split(':')[1] === 'torrent') {
                     return _handleInfo(data)
                 }
-            } else if (data.dataId && data.requestMgr) {
+            } else if (data.dataId && data.requestMgr) { // Torrent
                 // TODO Handle an "immediate" response to our request.
                 //      Already in 0NET cache and no need to wait for seeders.
                 console.log('BLOCK REQUEST MANAGER', data.requestMgr)
-            } else if (data.dataId && data.blockBuffer) {
+            } else if (data.dataId && data.blockBuffer) { // Torrent
                 /* Handle response. */
                 return _handleBlock(data)
             } else {
@@ -106,7 +107,7 @@ const _handle0penMessage = async function (_data) {
             break
         case 'NOTIF':
             /* Handle response. */
-            return app.msgList.push(data)
+            return App.msgList.push(data)
         case 'SEARCH':
             /* Handle response. */
             return _handleSearch(data)

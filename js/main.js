@@ -145,7 +145,7 @@ const vueAppManager = {
 }
 
 /* Initialize the application. */
-const app = new Vue(vueAppManager)
+const App = new Vue(vueAppManager)
 
 /**
  * jQuery says it's time to boogie!
