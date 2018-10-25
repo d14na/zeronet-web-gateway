@@ -53,7 +53,13 @@ const vueAppManager = {
         msgList: [],
 
         /* Profile */
-        profile: {}
+        profile: {},
+
+        /* Zeronet */
+        currentAddress: null,
+
+        /* Torrent */
+        activeTorrents: {}
     }),
     mounted: function () {
         /* Initialize application. */

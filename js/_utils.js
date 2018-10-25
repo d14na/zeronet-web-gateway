@@ -232,3 +232,50 @@ const _verifyMetadata = function (_infoHash, _metadata) {
         return null
     }
 }
+
+/**
+ * Parse File Data
+ *
+ * NOTE Decoding file data (primarily for UI display).
+ */
+const _formatFileData = function (_data, _fileExt) {
+    switch (_fileExt.toUpperCase()) {
+    // TODO Add support for ALL raw string formats.
+    case '': // NOTE Support for extension-less files (eg LICENSE).
+    //               Are there ANY binary files in this category??
+    case 'HTM':
+    case 'HTML':
+    case 'MD':
+        _data = Buffer.from(_data).toString()
+        break
+    case 'CSS':
+        _data = `<style>${Buffer.from(_data).toString()}</style>`
+        break
+    case 'JS':
+        _data = `<script>${Buffer.from(_data).toString()}</script>`
+        break
+    case 'XML':
+        _data = `<xml>${Buffer.from(_data).toString()}</xml>`
+        break
+    case 'GIF':
+        _data = `data:image/gif;base64,${_imgConverter(_data)}`
+        // _data = `<img class="img-fluid" src="data:image/gif;base64,${_imgConverter(_data)}" width="300">`
+        break
+    case 'JPG':
+    case 'JPEG':
+        _data = `data:image/jpeg;base64,${_imgConverter(_data)}`
+        // _data = `<img class="img-fluid" src="data:image/jpeg;base64,${_imgConverter(_data)}" width="300">`
+        break
+    case 'PNG':
+        _data = `data:image/png;base64,${_imgConverter(_data)}`
+        // _data = `<img class="img-fluid" src="data:image/png;base64,${_imgConverter(_data)}" width="300">`
+        break
+    default:
+        // NOTE Leave as buffer (for binary files).
+
+        // TODO Decide if we want to default to BINARY or STRING
+        //      for any UNKNOWN file types.
+    }
+
+    return _data
+}
