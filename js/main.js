@@ -55,11 +55,11 @@ const vueAppManager = {
         /* Profile */
         profile: {},
 
-        /* Zeronet */
-        currentAddress: null,
+        /* Zeronet Zite Manager */
+        ziteMgr: {},
 
-        /* Torrent */
-        activeTorrents: {}
+        /* Torrent Manager */
+        torrentMgr: {}
     }),
     mounted: function () {
         /* Initialize application. */
