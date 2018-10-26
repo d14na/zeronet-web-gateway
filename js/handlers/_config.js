@@ -89,12 +89,12 @@ const _handleConfig = async function (_data) {
         /* Request file data. */
         fileData = await _dbRead(dbName, dataId)
 
-        _addLog(`Received [ ${dataId} ] [ ${numeral(fileData['data'].length).format('0,0') || 0} bytes ]`)
-
         /* Validate file data. */
         if (fileData) {
+            _addLog(`Received [ ${dataId} ] [ ${numeral(fileData['data'].length).format('0,0') || 0} bytes ]`)
+
             /* Add file data to body builder. */
-            App.ziteMgr[_data.dest]['data'][file] = fileData
+            App.ziteMgr[_data.dest]['data'][file] = fileData['data']
         } else {
             _addLog(`Requesting [ ${dataId} ] from 0PEN.`)
 

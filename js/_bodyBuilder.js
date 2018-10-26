@@ -2,11 +2,22 @@
  * Body Builder
  */
 const _bodyBuilder = function (_dest, _config) {
+    /* Validate destination. */
+    if (!App.ziteMgr[_dest] || !App.ziteMgr[_dest]['data']) {
+        return console.error(`No DATA found for [ ${_dest} ]`)
+    }
+
+    /* Validate start page (index.html). */
+    // FIXME Add support for other zite pages.
+    if (!App.ziteMgr[_dest]['data']['index.html']) {
+        return console.error(`No START PAGE found for [ ${_dest} ]`)
+    }
+
     /* Validate start page (index.html) availability. */
     // FIXME Add support for other zite pages.
-    if (App.ziteMgr[_dest]['data']['index.html']['data']) {
+    if (App.ziteMgr[_dest]['data']['index.html']) {
         /* Set start page (index.html). */
-        let startPage = App.ziteMgr[_dest]['data']['index.html']['data']
+        let startPage = App.ziteMgr[_dest]['data']['index.html']
 
         /* Format start page. */
         startPage = _formatFileData(startPage, 'html')
@@ -74,7 +85,8 @@ const _bodyBuilder = function (_dest, _config) {
                 let preBody = App.ziteMgr[_dest]['body'].slice(0, startPos)
                 let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
 
-                let inline = App.ziteMgr[_dest]['data'][href]['data']
+                let inline = App.ziteMgr[_dest]['data'][href]
+                // let inline = App.ziteMgr[_dest]['data'][href]['data']
 
                 /* Parse file data. */
                 inline = _formatFileData(inline, 'css')
@@ -130,7 +142,8 @@ const _bodyBuilder = function (_dest, _config) {
             let preBody = App.ziteMgr[_dest]['body'].slice(0, startPos)
             let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
 
-            let inline = App.ziteMgr[_dest]['data'][src]['data']
+            let inline = App.ziteMgr[_dest]['data'][src]
+            // let inline = App.ziteMgr[_dest]['data'][src]['data']
 
             /* Parse file data. */
             inline = elem.replace(src, _formatFileData(inline, 'png'))
@@ -176,14 +189,18 @@ const _bodyBuilder = function (_dest, _config) {
 
             /* Retrieve the image source. */
             let url = $(elem).css('background-image')
+
+            // FIXME Safari & iOS are prepending (https://web.0net.io/)
+            url = url.replace(/https:\/\/web.0net.io\//, '')
+
             let src = url.slice(5, -2)
             console.log('Parsed [url / src]', url, src)
 
             let preBody = App.ziteMgr[_dest]['body'].slice(0, startPos)
             let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
 
-            let inline = App.ziteMgr[_dest]['data'][src]['data']
-            // let inline = bodyBuilder[src]['data']
+            let inline = App.ziteMgr[_dest]['data'][src]
+            // let inline = App.ziteMgr[_dest]['data'][src]['data']
 
             /* Parse file data. */
             inline = elem.replace(src, _formatFileData(inline, 'jpg'))

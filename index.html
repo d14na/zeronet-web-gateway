@@ -215,7 +215,7 @@ support@d14na.org
             <div class="dropdown dropdown-c">
                 <a href="javascript://" class="logged-user" data-toggle="dropdown">
                     <img :src="profile.icon" alt="">
-                    <span>{{ profile.nickname }}</span>
+                    <span>{{ profile.nametag }}</span>
                     <i class="fa fa-angle-down"></i>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right">
@@ -312,11 +312,10 @@ support@d14na.org
                     No worries, we've got you covered!
                 </p>
 
-                <button type="button" class="btn btn-primary btnModalDebugTest2">Run Test #2</button>
-                <button type="button" class="btn btn-primary btnModalDebugTest3">Run Test #3</button>
-                <button type="button" class="btn btn-primary btnModalDebugTest4">Run Test #4</button>
-                <button type="button" class="btn btn-primary btnModalDebugTest5">Run Test #5</button>
-                <button type="button" class="btn btn-primary btnModalDebugDbDumps">Dump Databases</button>
+                <button type="button" class="btn btn-info btnModalDebugTest4">Readme.md</button>
+                <button type="button" class="btn btn-info btnModalDebugTest5">eBook</button>
+                <button type="button" class="btn btn-warning btnModalDebugDbDumps">Dump Databases</button>
+                <button type="button" class="btn btn-danger btnModalDebugDropFilesDb">Drop Files Db</button>
             </div>
 
             <div class="modal-footer">
@@ -353,6 +352,7 @@ support@d14na.org
 <!-- Local JS Libraries -->
 <script src="./js/_bodyBuilder.js"></script>
 <script src="./js/_conn.js"></script>
+<script src="./js/_debug.js"></script>
 <script src="./js/_gatekeeper.js"></script>
 <script src="./js/_modals.js"></script>
 <script src="./js/_pouchDb.js"></script>
@@ -363,7 +363,6 @@ support@d14na.org
 <script src="./js/handlers/_auth.js"></script>
 <script src="./js/handlers/_block.js"></script>
 <script src="./js/handlers/_config.js"></script>
-<script src="./js/handlers/_debug.js"></script>
 <script src="./js/handlers/_info.js"></script>
 <script src="./js/handlers/_search.js"></script>
 <script src="./js/handlers/_whoAmI.js"></script>

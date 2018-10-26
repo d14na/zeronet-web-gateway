@@ -83,7 +83,7 @@ const vueAppManager = {
             /* Initialize profile. */
             this.profile = {
                 icon: '/img/dark-hood-icon.jpg',
-                nickname: 'Guest Peer'
+                nametag: 'Private Guest'
             }
         },
         _parseFlags: function (_flags) {

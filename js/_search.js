@@ -35,7 +35,17 @@ const _search = async function (_query) {
 
     /* Validate search query. */
     if (query.slice(0, 10).toUpperCase() === 'DEBUG.MENU') {
-        _handleDebug()
+        /* Clear open modals. */
+        _clearModals()
+
+        /* Show ADMIN permission modal. */
+        $('#modalDebug').modal({
+            backdrop: 'static',
+            keyboard: false
+        })
+
+        /* Reset search. */
+        App._resetSearch()
     } else if (query.slice(0, 7).toUpperCase() === 'GETFILE' && query.length > 10) {
         /* Set action. */
         action = 'GET'

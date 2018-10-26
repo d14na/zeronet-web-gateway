@@ -2,13 +2,22 @@
  * Hanlde Zeronet File
  */
 const _handleZeroFile = async function (_data) {
+    /* Validate configuration (content.json). */
+    if (!App.ziteMgr[_data.dest]) {
+        /* Create a new manager for zite. */
+        App.ziteMgr[_data.dest] = {}
+    }
+
+    console.log('HANDLE ZERO FILE [ziteMgr]', App.ziteMgr[_data.dest]);
+
     /* Retrieve configuration. */
-    const config = await _dbRead('main', `${_data.dest}:content.json`)
-    console.log('FOUND CONFIG', config)
+    // const config = await _dbRead('main', `${_data.dest}:content.json`)
+    const config = App.ziteMgr[_data.dest]['config']
+    // console.log('FOUND CONFIG', config)
 
     /* Validate config. */
-    if (!config || !config.data || !config.data.files) {
-        return _addLog('Problem retrieving config (content.json) from database.')
+    if (!config || !config.files) {
+        return _addLog('No config found in Zite Manager.')
     }
 
     /* Set inner path. */
@@ -20,7 +29,7 @@ const _handleZeroFile = async function (_data) {
     }
 
     /* Set files list. */
-    const files = config.data.files
+    const files = config.files
 
     /* Set (configuraton) file size. */
     const configSize = files[innerPath].size
@@ -28,23 +37,23 @@ const _handleZeroFile = async function (_data) {
     /* Set (configuration) hash. */
     const configHash = files[innerPath].sha512
 
-    console.log(`${innerPath} size/hash`, configSize, configHash)
+    // console.log(`${innerPath} size/hash`, configSize, configHash)
 
-    /* Initialize body. */
-    let body = null
+    /* Initialize file data. */
+    let fileData = null
 
-    /* Parse body (into buffer). */
+    /* Parse file data (into buffer). */
     if (_data.body) {
-        body = Buffer.from(_data.body)
+        fileData = Buffer.from(_data.body)
     }
 
     /* Calculate file size. */
-    const fileSize = parseInt(body.length)
-    console.log(`File size/length [ ${fileSize} ]`)
+    const fileSize = parseInt(fileData.length)
+    // console.log(`File size/length [ ${fileSize} ]`)
 
     /* Calculate file verifcation hash. */
-    const fileHash = _calcFileHash(body)
-    console.log(`File verification hash [ ${fileHash} ]`)
+    const fileHash = _calcFileHash(fileData)
+    // console.log(`File verification hash [ ${fileHash} ]`)
 
     /* Initialize valid flag. */
     let isValid = null
@@ -64,7 +73,7 @@ const _handleZeroFile = async function (_data) {
         const dataId = `${_data.dest}:${_data.innerPath}`
 
         /* Write to database. */
-        _dbWrite(dbName, dataId, body)
+        _dbWrite(dbName, dataId, fileData)
 
         /* Initialize file extension. */
         // NOTE Some files (eg. LICENSE, do not have extensions).
@@ -75,22 +84,28 @@ const _handleZeroFile = async function (_data) {
             fileExt = innerPath.split('.').pop()
         }
 
+        /* Add file data to body builder. */
+        App.ziteMgr[_data.dest]['data'][innerPath] = fileData
+
+        /* Run body builder. */
+        _bodyBuilder(_data.dest, config)
+
         /* Parse file data. */
-        body = _formatFileData(body, fileExt)
+        // body = _formatFileData(body, fileExt)
 
         /* Build gatekeeper package. */
-        pkg = { body }
+        // pkg = { body }
     } else {
         /* Generate error body. */
-        body = `${innerPath} file verification FAILED!`
+        console.error(`[ ${innerPath} ] file verification FAILED!`)
 
         /* Build gatekeeper package. */
-        pkg = { body }
+        // pkg = { body }
     }
 
     /* Send package to gatekeeper. */
-    _gatekeeperMsg(pkg)
+    // _gatekeeperMsg(pkg)
 
     /* Clear modals. */
-    _clearModals()
+    // _clearModals()
 }
