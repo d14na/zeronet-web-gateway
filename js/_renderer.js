@@ -91,7 +91,6 @@ const _renderer = function (_dest, _config) {
                 let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
 
                 let inline = App.ziteMgr[_dest]['data'][href]
-                // let inline = App.ziteMgr[_dest]['data'][href]['data']
 
                 /* Parse file data. */
                 inline = _formatFileData(inline, 'css')
@@ -99,6 +98,131 @@ const _renderer = function (_dest, _config) {
                 /* Update body. */
                 App.ziteMgr[_dest]['body'] = `${preBody}${inline}${postBody}`
             }
+        }
+
+        /* Set next position. */
+        startPos = endPos + 1
+
+        /* Increment number of found elements. */
+        numElem++
+    }
+
+    /* Reset start position. */
+    startPos = 0
+
+    while (App.ziteMgr[_dest]['body'].indexOf('<script', startPos) !== -1 && numElem < MAX) {
+        /* Set starting position. */
+        startPos = App.ziteMgr[_dest]['body'].indexOf('<script', startPos)
+
+        /* Set ending position. */
+        endPos = App.ziteMgr[_dest]['body'].indexOf('>', startPos + 1)
+
+        /* Validate element end position. */
+        if (endPos < startPos) {
+            console.error('Continuing past BAD ELEMENT @', startPos)
+            continue
+        }
+
+        /* Retrieve element. */
+        elem = App.ziteMgr[_dest]['body'].slice(startPos, endPos + 1)
+
+        if (
+            elem.includes('href="https://') ||
+            elem.includes('href="http://') ||
+            elem.includes('href="//')
+        ) {
+            // console.log('Found (Remote) Element', elem)
+        } else {
+            console.log('Found (Local) Element', elem)
+
+            /* Retrieve the resource relationship. */
+            // let rel = $(elem).attr('rel')
+            // console.log('Parsed [rel]', rel)
+
+            /* Retrieve the resource type. */
+            let type = $(elem).attr('type')
+            console.log('Parsed [type]', type)
+
+            /* Retrieve the resource location. */
+            let src = $(elem).attr('src')
+            console.log('Parsed [src]', src)
+
+            if (type === 'text/javascript') {
+                let preBody = App.ziteMgr[_dest]['body'].slice(0, startPos)
+                let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
+
+                let inline = App.ziteMgr[_dest]['data'][src]
+
+                /* Parse file data. */
+                inline = _formatFileData(inline, 'js')
+
+                /* Update body. */
+                App.ziteMgr[_dest]['body'] = `${preBody}${inline}${postBody}`
+            }
+        }
+
+        /* Set next position. */
+        startPos = endPos + 1
+
+        /* Increment number of found elements. */
+        numElem++
+    }
+
+    /* Reset start position. */
+    startPos = 0
+
+    // NOTE THIS IS THE FIRST EXEMPTION NEEDED TO SUPPORT PNG IMAGES
+    //      EMBEDDED IN EXTERNAL SCRIPT FILES.
+
+    while (App.ziteMgr[_dest]['body'].indexOf('src: "', startPos) !== -1 && numElem < MAX) {
+        /* Set starting position. */
+        startPos = App.ziteMgr[_dest]['body'].indexOf('src: "', startPos)
+
+        /* Set ending position. */
+        endPos = App.ziteMgr[_dest]['body'].indexOf('"', startPos + 6)
+
+        /* Validate element end position. */
+        if (endPos < startPos) {
+            console.error('Continuing past BAD ELEMENT @', startPos)
+            continue
+        }
+
+        /* Retrieve element. */
+        elem = App.ziteMgr[_dest]['body'].slice(startPos + 6, endPos)
+
+        if (
+            elem.includes('https://') ||
+            elem.includes('http://') ||
+            elem.includes('//')
+        ) {
+            // console.log('Found (Remote) Element', elem)
+        } else {
+            console.log('Found (Local) Element', elem)
+
+            /* Retrieve the resource relationship. */
+            // let rel = $(elem).attr('rel')
+            // console.log('Parsed [rel]', rel)
+
+            /* Retrieve the resource type. */
+            // let type = $(elem).attr('type')
+            // console.log('Parsed [type]', type)
+
+            /* Retrieve the resource location. */
+            // let src = $(elem).attr('src')
+            // console.log('Parsed [src]', src)
+
+            // if (type === 'text/javascript') {
+            let preBody = App.ziteMgr[_dest]['body'].slice(0, startPos + 6)
+            let postBody = App.ziteMgr[_dest]['body'].slice(endPos)
+
+            let inline = App.ziteMgr[_dest]['data'][elem]
+
+            /* Parse file data. */
+            inline = _formatFileData(inline, 'png')
+
+            /* Update body. */
+            App.ziteMgr[_dest]['body'] = `${preBody}${inline}${postBody}`
+            // }
         }
 
         /* Set next position. */
@@ -148,7 +272,6 @@ const _renderer = function (_dest, _config) {
             let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
 
             let inline = App.ziteMgr[_dest]['data'][src]
-            // let inline = App.ziteMgr[_dest]['data'][src]['data']
 
             /* Parse file data. */
             inline = elem.replace(src, _formatFileData(inline, 'png'))
@@ -205,7 +328,6 @@ const _renderer = function (_dest, _config) {
             let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
 
             let inline = App.ziteMgr[_dest]['data'][src]
-            // let inline = App.ziteMgr[_dest]['data'][src]['data']
 
             /* Parse file data. */
             inline = elem.replace(src, _formatFileData(inline, 'jpg'))
