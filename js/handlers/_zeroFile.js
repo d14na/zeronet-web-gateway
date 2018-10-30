@@ -8,16 +8,37 @@ const _handleZeroFile = async function (_data) {
         App.ziteMgr[_data.dest] = {}
     }
 
-    console.log('HANDLE ZERO FILE [ziteMgr]', App.ziteMgr[_data.dest]);
+    console.log('HANDLING ZERO FILE [ziteMgr]', App.ziteMgr[_data.dest]);
+
+    /* Initialize config. */
+    let config = null
 
     /* Retrieve configuration. */
-    // const config = await _dbRead('main', `${_data.dest}:content.json`)
-    const config = App.ziteMgr[_data.dest]['config']
+    config = App.ziteMgr[_data.dest]['config']
     // console.log('FOUND CONFIG', config)
 
     /* Validate config. */
     if (!config || !config.files) {
-        return _addLog('No config found in Zite Manager.')
+        /* Try to retrieve from db. */
+        config = await _dbRead('main', `${_data.dest}:content.json`)
+
+        // console.log('WHAT DID WE FIND IN THE DB for:', `${_data.dest}:content.json`, config)
+
+        /* Re-validate config. */
+        if (!config || !config.data) {
+            return _addLog('No config found in Zite Manager.')
+        } else {
+            config = config.data
+
+            /* Initialize zite file data. */
+            App.ziteMgr[_data.dest]['data'] = {}
+
+            /* Set zite config (content.json). */
+            App.ziteMgr[_data.dest]['config'] = config
+
+            /* Initialize zite (display) body. */
+            App.ziteMgr[_data.dest]['body'] = ''
+        }
     }
 
     /* Set inner path. */
@@ -86,26 +107,10 @@ const _handleZeroFile = async function (_data) {
 
         /* Add file data to body builder. */
         App.ziteMgr[_data.dest]['data'][innerPath] = fileData
-
-        /* Run body builder. */
-        _bodyBuilder(_data.dest, config)
-
-        /* Parse file data. */
-        // body = _formatFileData(body, fileExt)
-
-        /* Build gatekeeper package. */
-        // pkg = { body }
     } else {
         /* Generate error body. */
         console.error(`[ ${innerPath} ] file verification FAILED!`)
-
-        /* Build gatekeeper package. */
-        // pkg = { body }
+        console.error({ configSize, fileSize, configHash, fileHash })
+        console.error(Buffer.from(_data['body']).toString())
     }
-
-    /* Send package to gatekeeper. */
-    // _gatekeeperMsg(pkg)
-
-    /* Clear modals. */
-    // _clearModals()
 }

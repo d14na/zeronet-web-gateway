@@ -4,8 +4,20 @@
 const _handleConfig = async function (_data) {
     console.log('CONFIG DATA', _data)
 
-    if (!_data.body) {
+    /* Set body. */
+    const body = _data.body
+
+    /* Validate body. */
+    if (!body) {
         return console.error('ERROR retrieving config body', _data)
+    }
+
+    /* Set destination. */
+    const dest = _data.dest
+
+    /* Validate destination. */
+    if (!dest) {
+        return console.error('ERROR retrieving config destination', _data)
     }
 
     /* Initialize config. */
@@ -13,7 +25,7 @@ const _handleConfig = async function (_data) {
 
     try {
         /* Parse config data. */
-        config = JSON.parse(Buffer.from(_data.body))
+        config = JSON.parse(Buffer.from(body))
 
         console.log('CONFIG BODY', config)
     } catch (_err) {
@@ -50,22 +62,22 @@ const _handleConfig = async function (_data) {
     /* Initailize database values. */
     let dbName = 'main'
     // NOTE data id DOES NOT exist for SEARCH requests (eg zitetags).
-    let dataId = _data.dataId || `${_data.dest}:${_data.innerPath}`
+    let dataId = _data.dataId || `${dest}:${_data.innerPath}`
 
     /* Write to database. */
     _dbWrite(dbName, dataId, config)
 
     /* Initialize zite manager. */
-    App.ziteMgr[_data.dest] = {}
+    App.ziteMgr[dest] = {}
 
     /* Initialize zite file data. */
-    App.ziteMgr[_data.dest]['data'] = {}
+    App.ziteMgr[dest]['data'] = {}
 
     /* Set zite config (content.json). */
-    App.ziteMgr[_data.dest]['config'] = config
+    App.ziteMgr[dest]['config'] = config
 
     /* Initialize zite (display) body. */
-    App.ziteMgr[_data.dest]['body'] = ''
+    App.ziteMgr[dest]['body'] = ''
 
     /* Initialize action. */
     let action = null
@@ -79,24 +91,24 @@ const _handleConfig = async function (_data) {
     /* Start file verification. */
     for (let file in config.files) {
         /* Set db name. */
-        dbName = 'files'
+        const dbName = 'files'
 
         /* Set data id. */
-        dataId = `${_data.dest}:${file}`
+        const dataId = `${dest}:${file}`
 
         _addLog(`Requesting [ ${dataId} ] from [ ${dbName} ]`)
 
         /* Request file data. */
-        fileData = await _dbRead(dbName, dataId)
+        const fileData = await _dbRead(dbName, dataId)
 
         /* Validate file data. */
         if (fileData) {
-            _addLog(`Received [ ${dataId} ] [ ${numeral(fileData['data'].length).format('0,0') || 0} bytes ]`)
+            _addLog(`Received [ ${dataId} ] [ ${numeral(fileData['data'].length).format('0,0') || 0} bytes ] from [ ${dbName} ].`)
 
             /* Add file data to body builder. */
-            App.ziteMgr[_data.dest]['data'][file] = fileData['data']
+            App.ziteMgr[dest]['data'][file] = fileData['data']
         } else {
-            _addLog(`Requesting [ ${dataId} ] from 0PEN.`)
+            _addLog(`[ ${dataId} ] NOT IN DB, now requesting from [ 0PEN ]`)
 
             /* Set action. */
             action = 'GET'
@@ -106,9 +118,12 @@ const _handleConfig = async function (_data) {
 
             /* Send message request. */
             _send0penMessage(pkg)
+
+            // FIXME TEMPORARY FOR TESTING PURPOSES ONLY
+            // break
         }
     }
 
-    /* Run body builder. */
-    _bodyBuilder(_data.dest, config)
+    /* Run HTML body renderer. */
+    _renderer(dest, config)
 }

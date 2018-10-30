@@ -1,7 +1,12 @@
+/* Set constants. */
+const RETRY_BUILD_DELAY = 1000
+
 /**
- * Body Builder
+ * HTML Page Renderer
  */
-const _bodyBuilder = function (_dest, _config) {
+const _renderer = function (_dest, _config) {
+    console.log('HTML BODY RENDERER CALLED', new Date())
+
     /* Validate destination. */
     if (!App.ziteMgr[_dest] || !App.ziteMgr[_dest]['data']) {
         return console.error(`No DATA found for [ ${_dest} ]`)
@@ -10,12 +15,14 @@ const _bodyBuilder = function (_dest, _config) {
     /* Validate start page (index.html). */
     // FIXME Add support for other zite pages.
     if (!App.ziteMgr[_dest]['data']['index.html']) {
-        return console.error(`No START PAGE found for [ ${_dest} ]`)
-    }
+        console.error(`No START PAGE found for [ ${_dest} ]`)
 
-    /* Validate start page (index.html) availability. */
-    // FIXME Add support for other zite pages.
-    if (App.ziteMgr[_dest]['data']['index.html']) {
+        /* Retry body builder (after delay). */
+        return setTimeout(() => {
+            console.log('FAILED INDEX.HTML CHECK')
+            _renderer(_dest, _config)
+        }, RETRY_BUILD_DELAY)
+    } else {
         /* Set start page (index.html). */
         let startPage = App.ziteMgr[_dest]['data']['index.html']
 
@@ -24,8 +31,6 @@ const _bodyBuilder = function (_dest, _config) {
 
         /* Set start page. */
         App.ziteMgr[_dest]['body'] = startPage
-    } else {
-        return console.error(`[ ${_dest} ] is missing index.html`)
     }
 
     /* Initilize start pos. */
@@ -242,5 +247,11 @@ const _bodyBuilder = function (_dest, _config) {
         const numAvail = Object.keys(App.ziteMgr[_dest]['data']).length
 
         console.error(`[ ${_dest} ] missing [ ${numRequired - numAvail} ] pieces.`)
+
+        /* Retry body builder (after delay). */
+        setTimeout(() => {
+            console.log('FAILED REQUIRED FILES CHECK')
+            _renderer(_dest, _config)
+        }, RETRY_BUILD_DELAY)
     }
 }

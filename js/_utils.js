@@ -246,6 +246,7 @@ const _formatFileData = function (_data, _fileExt) {
     case 'HTM':
     case 'HTML':
     case 'MD':
+    case 'TXT':
         _data = Buffer.from(_data).toString()
         break
     case 'CSS':
