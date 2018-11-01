@@ -13,10 +13,10 @@ const _handleConfig = async function (_data) {
     }
 
     /* Set destination. */
-    const dest = _data.dest
+    App.destination = _data.dest
 
     /* Validate destination. */
-    if (!dest) {
+    if (!App.destination) {
         return console.error('ERROR retrieving config destination', _data)
     }
 
@@ -62,22 +62,22 @@ const _handleConfig = async function (_data) {
     /* Initailize database values. */
     let dbName = 'main'
     // NOTE data id DOES NOT exist for SEARCH requests (eg zitetags).
-    let dataId = _data.dataId || `${dest}:${_data.innerPath}`
+    let dataId = _data.dataId || `${App.destination}:${_data.innerPath}`
 
     /* Write to database. */
     _dbWrite(dbName, dataId, config)
 
     /* Initialize zite manager. */
-    App.ziteMgr[dest] = {}
+    App.ziteMgr[App.destination] = {}
 
     /* Initialize zite file data. */
-    App.ziteMgr[dest]['data'] = {}
+    App.ziteMgr[App.destination]['data'] = {}
 
     /* Set zite config (content.json). */
-    App.ziteMgr[dest]['config'] = config
+    App.ziteMgr[App.destination]['config'] = config
 
     /* Initialize zite (display) body. */
-    App.ziteMgr[dest]['body'] = ''
+    App.ziteMgr[App.destination]['body'] = ''
 
     /* Initialize action. */
     let action = null
@@ -94,7 +94,7 @@ const _handleConfig = async function (_data) {
         const dbName = 'files'
 
         /* Set data id. */
-        const dataId = `${dest}:${file}`
+        const dataId = `${App.destination}:${file}`
 
         _addLog(`Requesting [ ${dataId} ] from [ ${dbName} ]`)
 
@@ -106,7 +106,7 @@ const _handleConfig = async function (_data) {
             _addLog(`Received [ ${dataId} ] [ ${numeral(fileData['data'].length).format('0,0') || 0} bytes ] from [ ${dbName} ].`)
 
             /* Add file data to body builder. */
-            App.ziteMgr[dest]['data'][file] = fileData['data']
+            App.ziteMgr[App.destination]['data'][file] = fileData['data']
         } else {
             _addLog(`[ ${dataId} ] NOT IN DB, now requesting from [ 0PEN ]`)
 
@@ -125,5 +125,5 @@ const _handleConfig = async function (_data) {
     }
 
     /* Run HTML body renderer. */
-    _renderer(dest, config)
+    _renderer(App.destination, config)
 }

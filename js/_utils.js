@@ -253,7 +253,12 @@ const _formatFileData = function (_data, _fileExt) {
         _data = `<style>${Buffer.from(_data).toString()}</style>`
         break
     case 'JS':
-        _data = `<script>${Buffer.from(_data).toString()}</script>`
+        try {
+            // _data = `<script>eval(${Buffer.from(_data).toString()})</script>`
+            _data = `<script>${Buffer.from(_data).toString()}</script>`
+        } catch (_err) {
+            console.error('ERROR: Parsing JS', _data)
+        }
         break
     case 'XML':
         _data = `<xml>${Buffer.from(_data).toString()}</xml>`

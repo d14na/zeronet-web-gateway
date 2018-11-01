@@ -57,6 +57,7 @@ const vueAppManager = {
 
         /* Zeronet Zite Manager */
         ziteMgr: {},
+        destination: null,
 
         /* Torrent Manager */
         torrentMgr: {}
@@ -141,7 +142,7 @@ const vueAppManager = {
         },
         search: function () {
             if (!this.query) {
-                return _alert('Peer2Peer Search Error', 'Please enter a TERM to search.')
+                return _alert('Peer2Peer Request Error', 'Please enter the REQUEST you desdire.')
             }
 
             /* Call search library. */

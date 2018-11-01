@@ -9,6 +9,8 @@
  * created. We verify the source, and validate ALL inputs.
  */
 window.addEventListener('message', function (_event) {
+    console.log('INCOMING MESSAGE EVENT', _event)
+
     /* Retrieve origin. */
     const origin = _event.origin
 
@@ -20,11 +22,43 @@ window.addEventListener('message', function (_event) {
         /* Retrieve data. */
         const data = _event.data
 
+        console.log('EVENT DATA', data)
+
         /* Validate data. */
         if (data) {
             /* Handle any errors. */
             if (data.error) {
                 return _addLog(`Oops! We have a problem.<br /><br />${data.msg}`)
+            }
+
+            /* Handle any Api commands. */
+            if (data.cmd && data.params) {
+                /* Log all successful messages to console. */
+                _addLog(`${data.cmd} : ${data.params}`)
+
+                switch(data.cmd.toUpperCase()) {
+                case 'FILEGET':
+                    /* Initialize file data holder. */
+                    let fileData = null
+
+                    /* Retrieve file data from zite manager. */
+                    fileData = App.ziteMgr[App.destination]['data'][data.params]
+
+                    /* Format for display. */
+                    // FIXME Support ALL file types.
+                    fileData = _formatFileData(fileData, 'html')
+
+                    // console.log('FILE DATA', fileData)
+
+                    return _gatekeeperMsg({
+                        cmd: 'response',
+                        to: data.id,
+                        result: fileData
+                    })
+
+                default:
+                    return console.error('UNHANDLED API EVENT', data.cmd)
+                }
             }
 
             /* Verify we have a successful message. */

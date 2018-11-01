@@ -1,6 +1,10 @@
 /* Set constants. */
 const RETRY_BUILD_DELAY = 1000
 
+/* Set max elements. */
+// TEMP FOR DEVELOPMENT PURPOSES ONLY
+const MAX = 1000
+
 /**
  * HTML Page Renderer
  */
@@ -44,10 +48,6 @@ const _renderer = function (_dest, _config) {
 
     /* Initialize number of found elements. */
     let numElem = 0
-
-    /* Set max elements. */
-    // TEMP FOR DEVELOPMENT PURPOSES ONLY
-    const MAX = 100
 
     while (App.ziteMgr[_dest]['body'].indexOf('<link', startPos) !== -1 && numElem < MAX) {
         /* Set starting position. */
@@ -147,18 +147,24 @@ const _renderer = function (_dest, _config) {
             let src = $(elem).attr('src')
             console.log('Parsed [src]', src)
 
-            if (type === 'text/javascript') {
-                let preBody = App.ziteMgr[_dest]['body'].slice(0, startPos)
-                let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
-
-                let inline = App.ziteMgr[_dest]['data'][src]
-
-                /* Parse file data. */
-                inline = _formatFileData(inline, 'js')
-
-                /* Update body. */
-                App.ziteMgr[_dest]['body'] = `${preBody}${inline}${postBody}`
+            if (src === 'js/p0rtal-home.js') {
+                let home = App.ziteMgr[_dest]['data'][src]
+                console.log('P0RTAL-HOME.JS', home)
+                console.log('P0RTAL-HOME.JS [STRING]', Buffer.from(home).toString())
             }
+
+            // if (type === 'text/javascript') {
+            let preBody = App.ziteMgr[_dest]['body'].slice(0, startPos)
+            let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
+
+            let inline = App.ziteMgr[_dest]['data'][src]
+
+            /* Parse file data. */
+            inline = _formatFileData(inline, 'js')
+
+            /* Update body. */
+            App.ziteMgr[_dest]['body'] = `${preBody}${inline}${postBody}`
+            // }
         }
 
         /* Set next position. */
