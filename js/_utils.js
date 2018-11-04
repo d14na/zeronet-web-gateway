@@ -254,8 +254,8 @@ const _formatFileData = function (_data, _fileExt) {
         _data = Buffer.from(_data).toString()
         break
     case 'CSS':
-        _data = `<style>${Buffer.from(_data).toString()}</style>`
-        // _data = Buffer.from(_data).toString()
+        // _data = `<style>${Buffer.from(_data).toString()}</style>`
+        _data = Buffer.from(_data).toString()
         break
     case 'JS':
         try {

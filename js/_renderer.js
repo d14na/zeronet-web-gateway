@@ -46,29 +46,38 @@ const _renderer = function (_dest, _config) {
     /* Initilize end pos. */
     let endPos = 0
 
-    /* Initialize elem. */
-    let elem = ''
+    /* Set path starting index. */
+    let pathStart = 0
 
-    /* Initialize body. */
-    // let body = null
+    /* Set path ending index. */
+    let pathEnd = 0
 
-    // body = App.ziteMgr[_dest]['body']
-    // body = $.parseHTML( body )
-    // $.each( body, function( i, el ) {
-    //     console.log(`    ${i}: ${el.nodeName}`, el)
-    //     // nodeNames[ i ] = "<li>" + el.nodeName + "</li>";
-    // })
-    // $(body).find('link').each(function() {
-    //     console.log('FOUND LINK', $(this))
-    // })
+    /* Set starting match. */
+    let startMatch = `<link`
 
-    while (App.ziteMgr[_dest]['body'].indexOf('<link', startPos) !== -1 && _numHandled < SAFETY_MAX) {
+    /* Set ending match. */
+    let endMatch = `>`
+
+    /* LINK */
+    while (App.ziteMgr[_dest]['body'].indexOf(startMatch, startPos) !== -1 && _numHandled < SAFETY_MAX) {
         /* Handle element, then update start position. */
-        startPos = _handleElem(_dest, startPos)
+        startPos = _handleElem(_dest, startPos, startMatch, endMatch)
     }
 
     /* Reset start position. */
     startPos = 0
+
+    /* Reset starting match. */
+    startMatch = `<img`
+
+    /* Reset ending match. */
+    endMatch = `>`
+
+    /* LINK */
+    while (App.ziteMgr[_dest]['body'].indexOf(startMatch, startPos) !== -1 && _numHandled < SAFETY_MAX) {
+        /* Handle element, then update start position. */
+        startPos = _handleElem(_dest, startPos, startMatch, endMatch)
+    }
 
     while (App.ziteMgr[_dest]['body'].indexOf('<script', startPos) !== -1 && _numHandled < SAFETY_MAX) {
         break
@@ -349,97 +358,124 @@ const _renderer = function (_dest, _config) {
 /**
  * Handle Element
  */
-const _handleElem = function (_dest, _startPos) {
+const _handleElem = function (_dest, _startIndex, _startMatch, _endMatch) {
     /* Set body. */
     const body = App.ziteMgr[_dest]['body']
 
-    /* Set starting match. */
-    const startMatch = `<link`
-
-    /* Set ending match. */
-    const endMatch = `>`
-
     /* Set starting position. */
-    _startPos = body.indexOf(startMatch, _startPos)
+    _startIndex = body.indexOf(_startMatch, _startIndex)
 
     /* Set ending position. */
-    let endPos = body.indexOf(endMatch, _startPos + startMatch.length) + endMatch.length
+    const endPos = body.indexOf(_endMatch, _startIndex + _startMatch.length) +
+        _endMatch.length
 
     /* Validate element end position. */
-    if (endPos < _startPos) {
-        console.error(`Continuing past a BAD element @ [ ${_startPos} ] [ ${body.slice(_startPos, _startPos + 50)} ]`)
+    if (endPos < _startIndex) {
+        console.error(
+            `Continuing past a BAD element @ [ ${_startIndex} ] [ ${body.slice(_startIndex, _startIndex + 50)} ]`)
 
         /* Return next start position. */
-        return (startPos + startMatch.length)
+        return (_startIndex + _startMatch.length)
     }
 
     /* Retrieve element. */
-    elem = body.slice(_startPos, endPos)
+    let elem = body.slice(_startIndex, endPos)
 
+    /* Validate (external) resources. */
     if (
         elem.includes(`href="https://`) ||
         elem.includes(`href="http://`) ||
         elem.includes(`href="//`)
     ) {
-        // console.log('Found (Remote) Element', elem)
+        // SKIP -- DO NOTHING FOR NOW
+
+        // FIXME We would like to provide the user with the options to
+        //       block ALL external resources, allowing ONLY those which
+        //       are pre-approved (eg. ZeroCDN and ZeroPEN) and/or
+        //       approval PER EACH ZITE expressly granted by the user.
+
+        /* Return next start position. */
+        return (_startIndex + _startMatch.length)
+    }
+
+    console.log('Found (Local) Element', elem)
+
+    /* Initialize path starting index. */
+    let pathStart = null
+
+    /* Set path starting index. */
+    if (elem.indexOf(`href="`) !== -1) {
+        pathStart = elem.indexOf(`href="`) + 6
+    } else if (elem.indexOf(`src="`) !== -1) {
+        pathStart = elem.indexOf(`src="`) + 5
+    }
+
+    /* Validate path starting index. */
+    if (!pathStart) {
+        console.error(
+            `Continuing past a BAD element [ ${elem} ]`)
+
+        /* Return next start position. */
+        return (_startIndex + _startMatch.length)
+    }
+
+    /* Set path ending index. */
+    let pathEnd = elem.indexOf(`"`, pathStart)
+
+    /* Set local path. */
+    let localPath = elem.slice(pathStart, pathEnd)
+
+    console.info(`Parsed a (Local) Element [ ${localPath} ]`)
+
+    /* Set file extension. */
+    let fileExt = localPath.slice(-4)
+
+    /* Validate file extension. */
+    // TODO Improve with regex
+    if (fileExt.slice(0, 1) === '.') {
+        /* Remove dot. */
+        fileExt = fileExt.slice(1).toUpperCase()
     } else {
-        console.log('Found (Local) Element', elem)
+        console.error(
+            `Continuing past a BAD path [ ${localPath} ] [ ${fileExt} ]`)
 
-        /* Retrieve the resource relationship. */
-        // let rel = $(elem).attr('rel')
-        // console.log('Parsed [rel]', rel)
+        /* Return next start position. */
+        return (_startIndex + _startMatch.length)
+    }
 
-        /* Retrieve the resource type. */
-        // let type = $(elem).attr('type')
-        // console.log('Parsed [type]', type)
+    /* Handle inlined file data. */
+    if (fileExt === 'CSS') {
+        /* Set prepended body. */
+        let prepend = body.slice(0, _startIndex)
 
-        /* Retrieve the resource location. */
-        // let href = $(elem).attr('href')
-        // console.log('Parsed [href]', href)
+        /* Set appended body. */
+        let append = body.slice(endPos)
 
-        /* Set path starting index. */
-        let pathStart = elem.indexOf(`href="`) + 6
+        /* Set inlined (file data). */
+        let inline = App.ziteMgr[_dest]['data'][localPath]
 
-        /* Set path ending index. */
-        let pathEnd = elem.indexOf(`"`, pathStart)
+        /* Parse inlined (file data). */
+        inline = _formatFileData(inline, fileExt)
 
-        /* Set inner path. */
-        let innerPath = elem.slice(pathStart, pathEnd)
+        /* Update zite manager (body). */
+        App.ziteMgr[_dest]['body'] = `${prepend}<style>${inline}</style>${append}`
+    } else if (fileExt === 'PNG') {
+        /* Set prepended body. */
+        let prepend = body.slice(0, _startIndex + pathStart)
 
-        console.info(`Parsed a innerPath [ ${innerPath} ]`)
+        /* Set appended body. */
+        let append = body.slice(_startIndex + pathEnd)
 
-        /* Set file extension. */
-        let fileExt = innerPath.slice(-4)
+        /* Set inlined (file data). */
+        let inline = App.ziteMgr[_dest]['data'][localPath]
 
-        /* Validate file extension. */
-        // TODO Improve with regex
-        if (fileExt.slice(0, 1) === '.') {
-            /* Remove dot. */
-            fileExt = fileExt.slice(1).toUpperCase()
-        } else {
-            console.error(`Continuing past a BAD path [ ${innerPath} ] [ ${fileExt} ]`)
+        /* Parse inlined (file data). */
+        inline = _formatFileData(inline, fileExt)
 
-            /* Return next start position. */
-            return (startPos + startMatch.length)
-        }
-
-        /* Handle inlined file data. */
-        if (fileExt === 'CSS') {
-            /* Set prepended body. */
-            let prepend = body.slice(0, _startPos)
-
-            /* Set appended body. */
-            let append = body.slice(endPos)
-
-            /* Set inlined (file data). */
-            let inline = App.ziteMgr[_dest]['data'][innerPath]
-
-            /* Parse inlined (file data). */
-            inline = _formatFileData(inline, fileExt)
-
-            /* Update zite manager (body). */
-            App.ziteMgr[_dest]['body'] = `${prepend}${inline}${append}`
-        }
+        /* Update zite manager (body). */
+        App.ziteMgr[_dest]['body'] = `${prepend}${inline}${append}`
+    } else {
+        console.error(`Unhandled extension found [ ${fileExt} ] for [ ${localPath} ]`)
     }
 
     /* Increment number of handled elements. */
