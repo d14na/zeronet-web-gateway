@@ -3,7 +3,10 @@ const RETRY_BUILD_DELAY = 1000
 
 /* Set max elements. */
 // TEMP FOR DEVELOPMENT PURPOSES ONLY
-const MAX = 1000
+const SAFETY_MAX = 1000
+
+/* Initialize number of handled elements. */
+let _numHandled = 0
 
 /**
  * HTML Page Renderer
@@ -46,76 +49,34 @@ const _renderer = function (_dest, _config) {
     /* Initialize elem. */
     let elem = ''
 
-    /* Initialize number of found elements. */
-    let numElem = 0
+    /* Initialize body. */
+    // let body = null
 
-    while (App.ziteMgr[_dest]['body'].indexOf('<link', startPos) !== -1 && numElem < MAX) {
-        /* Set starting position. */
-        startPos = App.ziteMgr[_dest]['body'].indexOf('<link', startPos)
+    // body = App.ziteMgr[_dest]['body']
+    // body = $.parseHTML( body )
+    // $.each( body, function( i, el ) {
+    //     console.log(`    ${i}: ${el.nodeName}`, el)
+    //     // nodeNames[ i ] = "<li>" + el.nodeName + "</li>";
+    // })
+    // $(body).find('link').each(function() {
+    //     console.log('FOUND LINK', $(this))
+    // })
 
-        /* Set ending position. */
-        endPos = App.ziteMgr[_dest]['body'].indexOf('>', startPos + 1)
-
-        /* Validate element end position. */
-        if (endPos < startPos) {
-            console.error('Continuing past BAD ELEMENT @', startPos)
-            continue
-        }
-
-        /* Retrieve element. */
-        elem = App.ziteMgr[_dest]['body'].slice(startPos, endPos + 1)
-
-        if (
-            elem.includes('href="https://') ||
-            elem.includes('href="http://') ||
-            elem.includes('href="//')
-        ) {
-            // console.log('Found (Remote) Element', elem)
-        } else {
-            console.log('Found (Local) Element', elem)
-
-            /* Retrieve the resource relationship. */
-            let rel = $(elem).attr('rel')
-            console.log('Parsed [rel]', rel)
-
-            /* Retrieve the resource type. */
-            let type = $(elem).attr('type')
-            console.log('Parsed [type]', type)
-
-            /* Retrieve the resource location. */
-            let href = $(elem).attr('href')
-            console.log('Parsed [href]', href)
-
-            if (rel === 'stylesheet') {
-                let preBody = App.ziteMgr[_dest]['body'].slice(0, startPos)
-                let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
-
-                let inline = App.ziteMgr[_dest]['data'][href]
-
-                /* Parse file data. */
-                inline = _formatFileData(inline, 'css')
-
-                /* Update body. */
-                App.ziteMgr[_dest]['body'] = `${preBody}${inline}${postBody}`
-            }
-        }
-
-        /* Set next position. */
-        startPos = endPos + 1
-
-        /* Increment number of found elements. */
-        numElem++
+    while (App.ziteMgr[_dest]['body'].indexOf('<link', startPos) !== -1 && _numHandled < SAFETY_MAX) {
+        /* Handle element, then update start position. */
+        startPos = _handleElem(_dest, startPos)
     }
 
     /* Reset start position. */
     startPos = 0
 
-    while (App.ziteMgr[_dest]['body'].indexOf('<script', startPos) !== -1 && numElem < MAX) {
+    while (App.ziteMgr[_dest]['body'].indexOf('<script', startPos) !== -1 && _numHandled < SAFETY_MAX) {
+        break
         /* Set starting position. */
         startPos = App.ziteMgr[_dest]['body'].indexOf('<script', startPos)
 
         /* Set ending position. */
-        endPos = App.ziteMgr[_dest]['body'].indexOf('>', startPos + 1)
+        endPos = App.ziteMgr[_dest]['body'].indexOf('script>', startPos + 7) + 7
 
         /* Validate element end position. */
         if (endPos < startPos) {
@@ -124,7 +85,7 @@ const _renderer = function (_dest, _config) {
         }
 
         /* Retrieve element. */
-        elem = App.ziteMgr[_dest]['body'].slice(startPos, endPos + 1)
+        elem = App.ziteMgr[_dest]['body'].slice(startPos, endPos)
 
         if (
             elem.includes('href="https://') ||
@@ -133,7 +94,7 @@ const _renderer = function (_dest, _config) {
         ) {
             // console.log('Found (Remote) Element', elem)
         } else {
-            console.log('Found (Local) Element', elem)
+            console.log('Found (Local) Element', startPos, elem)
 
             /* Retrieve the resource relationship. */
             // let rel = $(elem).attr('rel')
@@ -147,31 +108,26 @@ const _renderer = function (_dest, _config) {
             let src = $(elem).attr('src')
             console.log('Parsed [src]', src)
 
-            if (src === 'js/p0rtal-home.js') {
-                let home = App.ziteMgr[_dest]['data'][src]
-                console.log('P0RTAL-HOME.JS', home)
-                console.log('P0RTAL-HOME.JS [STRING]', Buffer.from(home).toString())
+            /* Validate JavaScript. */
+            if (src || type === 'text/javascript') {
+                let preBody = App.ziteMgr[_dest]['body'].slice(0, startPos)
+                let postBody = App.ziteMgr[_dest]['body'].slice(endPos)
+
+                let inline = App.ziteMgr[_dest]['data'][src]
+
+                /* Parse file data. */
+                inline = _formatFileData(inline, 'js')
+
+                /* Update body. */
+                App.ziteMgr[_dest]['body'] = `${preBody}${inline}${postBody}`
             }
-
-            // if (type === 'text/javascript') {
-            let preBody = App.ziteMgr[_dest]['body'].slice(0, startPos)
-            let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
-
-            let inline = App.ziteMgr[_dest]['data'][src]
-
-            /* Parse file data. */
-            inline = _formatFileData(inline, 'js')
-
-            /* Update body. */
-            App.ziteMgr[_dest]['body'] = `${preBody}${inline}${postBody}`
-            // }
         }
 
         /* Set next position. */
         startPos = endPos + 1
 
-        /* Increment number of found elements. */
-        numElem++
+        /* Increment number of handled elements. */
+        _numHandled++
     }
 
     /* Reset start position. */
@@ -180,7 +136,8 @@ const _renderer = function (_dest, _config) {
     // NOTE THIS IS THE FIRST EXEMPTION NEEDED TO SUPPORT PNG IMAGES
     //      EMBEDDED IN EXTERNAL SCRIPT FILES.
 
-    while (App.ziteMgr[_dest]['body'].indexOf('src: "', startPos) !== -1 && numElem < MAX) {
+    while (App.ziteMgr[_dest]['body'].indexOf('src: "', startPos) !== -1 && _numHandled < SAFETY_MAX) {
+        break
         /* Set starting position. */
         startPos = App.ziteMgr[_dest]['body'].indexOf('src: "', startPos)
 
@@ -234,14 +191,15 @@ const _renderer = function (_dest, _config) {
         /* Set next position. */
         startPos = endPos + 1
 
-        /* Increment number of found elements. */
-        numElem++
+        /* Increment number of handled elements. */
+        _numHandled++
     }
 
     /* Reset start position. */
     startPos = 0
 
-    while (App.ziteMgr[_dest]['body'].indexOf('<img', startPos) !== -1 && numElem < MAX) {
+    while (App.ziteMgr[_dest]['body'].indexOf('<img', startPos) !== -1 && _numHandled < SAFETY_MAX) {
+        break
         /* Set starting position. */
         startPos = App.ziteMgr[_dest]['body'].indexOf('<img', startPos)
 
@@ -289,14 +247,15 @@ const _renderer = function (_dest, _config) {
         /* Set next position. */
         startPos = endPos + 1
 
-        /* Increment number of found elements. */
-        numElem++
+        /* Increment number of handled elements. */
+        _numHandled++
     }
 
     /* Reset start position. */
     startPos = 0
 
-    while (App.ziteMgr[_dest]['body'].indexOf('<div style="background-image', startPos) !== -1 && numElem < MAX) {
+    while (App.ziteMgr[_dest]['body'].indexOf('<div style="background-image', startPos) !== -1 && _numHandled < SAFETY_MAX) {
+        break
         /* Set starting position. */
         startPos = App.ziteMgr[_dest]['body'].indexOf('<div style="background-image', startPos)
 
@@ -345,8 +304,8 @@ const _renderer = function (_dest, _config) {
         /* Set next position. */
         startPos = endPos + 1
 
-        /* Increment number of found elements. */
-        numElem++
+        /* Increment number of handled elements. */
+        _numHandled++
     }
 
     /* Validate required files. */
@@ -363,6 +322,9 @@ const _renderer = function (_dest, _config) {
 
             /* Send package to gatekeeper. */
             _gatekeeperMsg(pkg)
+
+            console.log('SEND WRAPPER READY MESSAGE')
+            return _gatekeeperMsg({ cmd: 'wrapperReady' })
         }
 
         /* Clear modals. */
@@ -382,4 +344,107 @@ const _renderer = function (_dest, _config) {
             _renderer(_dest, _config)
         }, RETRY_BUILD_DELAY)
     }
+}
+
+/**
+ * Handle Element
+ */
+const _handleElem = function (_dest, _startPos) {
+    /* Set body. */
+    const body = App.ziteMgr[_dest]['body']
+
+    /* Set starting match. */
+    const startMatch = `<link`
+
+    /* Set ending match. */
+    const endMatch = `>`
+
+    /* Set starting position. */
+    _startPos = body.indexOf(startMatch, _startPos)
+
+    /* Set ending position. */
+    let endPos = body.indexOf(endMatch, _startPos + startMatch.length) + endMatch.length
+
+    /* Validate element end position. */
+    if (endPos < _startPos) {
+        console.error(`Continuing past a BAD element @ [ ${_startPos} ] [ ${body.slice(_startPos, _startPos + 50)} ]`)
+
+        /* Return next start position. */
+        return (startPos + startMatch.length)
+    }
+
+    /* Retrieve element. */
+    elem = body.slice(_startPos, endPos)
+
+    if (
+        elem.includes(`href="https://`) ||
+        elem.includes(`href="http://`) ||
+        elem.includes(`href="//`)
+    ) {
+        // console.log('Found (Remote) Element', elem)
+    } else {
+        console.log('Found (Local) Element', elem)
+
+        /* Retrieve the resource relationship. */
+        // let rel = $(elem).attr('rel')
+        // console.log('Parsed [rel]', rel)
+
+        /* Retrieve the resource type. */
+        // let type = $(elem).attr('type')
+        // console.log('Parsed [type]', type)
+
+        /* Retrieve the resource location. */
+        // let href = $(elem).attr('href')
+        // console.log('Parsed [href]', href)
+
+        /* Set path starting index. */
+        let pathStart = elem.indexOf(`href="`) + 6
+
+        /* Set path ending index. */
+        let pathEnd = elem.indexOf(`"`, pathStart)
+
+        /* Set inner path. */
+        let innerPath = elem.slice(pathStart, pathEnd)
+
+        console.info(`Parsed a innerPath [ ${innerPath} ]`)
+
+        /* Set file extension. */
+        let fileExt = innerPath.slice(-4)
+
+        /* Validate file extension. */
+        // TODO Improve with regex
+        if (fileExt.slice(0, 1) === '.') {
+            /* Remove dot. */
+            fileExt = fileExt.slice(1).toUpperCase()
+        } else {
+            console.error(`Continuing past a BAD path [ ${innerPath} ] [ ${fileExt} ]`)
+
+            /* Return next start position. */
+            return (startPos + startMatch.length)
+        }
+
+        /* Handle inlined file data. */
+        if (fileExt === 'CSS') {
+            /* Set prepended body. */
+            let prepend = body.slice(0, _startPos)
+
+            /* Set appended body. */
+            let append = body.slice(endPos)
+
+            /* Set inlined (file data). */
+            let inline = App.ziteMgr[_dest]['data'][innerPath]
+
+            /* Parse inlined (file data). */
+            inline = _formatFileData(inline, fileExt)
+
+            /* Update zite manager (body). */
+            App.ziteMgr[_dest]['body'] = `${prepend}${inline}${append}`
+        }
+    }
+
+    /* Increment number of handled elements. */
+    _numHandled++
+
+    /* Return next (start) position. */
+    return endPos
 }

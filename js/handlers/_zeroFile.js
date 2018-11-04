@@ -49,17 +49,6 @@ const _handleZeroFile = async function (_data) {
         return _addLog(`Problem retrieving inner path [ ${innerPath} ]`)
     }
 
-    /* Set files list. */
-    const files = config.files
-
-    /* Set (configuraton) file size. */
-    const configSize = files[innerPath].size
-
-    /* Set (configuration) hash. */
-    const configHash = files[innerPath].sha512
-
-    // console.log(`${innerPath} size/hash`, configSize, configHash)
-
     /* Initialize file data. */
     let fileData = null
 
@@ -68,26 +57,10 @@ const _handleZeroFile = async function (_data) {
         fileData = Buffer.from(_data.body)
     }
 
-    /* Calculate file size. */
-    const fileSize = parseInt(fileData.length)
-    // console.log(`File size/length [ ${fileSize} ]`)
+    /* Validate file data. */
+    const isValid = _validateFileData(config, fileData, innerPath)
 
-    /* Calculate file verifcation hash. */
-    const fileHash = _calcFileHash(fileData)
-    // console.log(`File verification hash [ ${fileHash} ]`)
-
-    /* Initialize valid flag. */
-    let isValid = null
-
-    /* Verify the signature of the file. */
-    if (configSize === fileSize && configHash === fileHash) {
-        isValid = true
-    } else {
-        isValid = false
-    }
-
-    _addLog(`${innerPath} validation is [ ${isValid} ]`)
-
+    /* Validate file data. */
     if (isValid) {
         /* Initailize database values. */
         const dbName = 'files'

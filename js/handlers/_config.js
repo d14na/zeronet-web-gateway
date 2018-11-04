@@ -61,11 +61,72 @@ const _handleConfig = async function (_data) {
 
     /* Initailize database values. */
     let dbName = 'main'
+
     // NOTE data id DOES NOT exist for SEARCH requests (eg zitetags).
     let dataId = _data.dataId || `${App.destination}:${_data.innerPath}`
 
-    /* Write to database. */
-    _dbWrite(dbName, dataId, config)
+    /* Set modified. */
+    let modified = config.modified
+
+    /* Retreive saved config. */
+    let savedConfig = await _dbRead('main', dataId)
+
+    /* Validate saved config. */
+    if (savedConfig) {
+        /* Set saved config data. */
+        savedConfig = savedConfig['data']
+
+        console.log('SAVED CONFIG', savedConfig)
+
+        console.log('NEW MODIFIED', modified, 'SAVED MODIFIED', savedConfig.modified)
+    }
+
+    if (savedConfig && modified > savedConfig.modified) {
+        _addLog('Zite update is available.')
+
+        let calcDiff = moment.unix(modified).diff(
+            moment.unix(savedConfig.modified), 'hours', true)
+
+        _alert(
+            'Zite Update Available',
+            'Would you like to download the latest zite now?',
+            `Last updated: ${calcDiff} hours ago.`,
+            false
+        )
+
+        /* Write to database. */
+        _dbWrite(dbName, dataId, config)
+
+        return console.error('MADE THE UPDATE, THEN STOPPED EXECUTION -- PLEASE REFRESH')
+    } else if (savedConfig && modified < savedConfig.modified) {
+        _addLog('OLD CONFIG FILE -- IGNORED.')
+
+        /* Run HTML body renderer. */
+        _renderer(App.destination, config)
+
+        // return
+    } else if (savedConfig && modified === savedConfig.modified) {
+        _addLog('Zite configuration file is current.')
+
+        /* Run HTML body renderer. */
+        _renderer(App.destination, config)
+
+        // return
+    } else {
+        _addLog('New zite added!')
+
+        _alert(
+            'Add New Zite',
+            'Would you like to add this zite to your gallery?',
+            `[ ${App.destination} ]`,
+            false
+        )
+
+        // return
+
+        /* Write to database. */
+        _dbWrite(dbName, dataId, config)
+    }
 
     /* Initialize zite manager. */
     App.ziteMgr[App.destination] = {}
@@ -103,10 +164,30 @@ const _handleConfig = async function (_data) {
 
         /* Validate file data. */
         if (fileData) {
-            _addLog(`Received [ ${dataId} ] [ ${numeral(fileData['data'].length).format('0,0') || 0} bytes ] from [ ${dbName} ].`)
+            /* Validate file data. */
+            const isValid = _validateFileData(config, fileData['data'], file)
 
-            /* Add file data to body builder. */
-            App.ziteMgr[App.destination]['data'][file] = fileData['data']
+            if (isValid) {
+                _addLog(`Validated [ ${dataId} ] [ ${numeral(fileData['data'].length).format('0,0') || 0} bytes ] from [ ${dbName} ].`)
+
+                /* Add file data to body builder. */
+                App.ziteMgr[App.destination]['data'][file] = fileData['data']
+            } else {
+                _addLog(`[ ${dataId} ] FAILED VALIDATION, now requesting from [ 0PEN ]`)
+
+                /* Set action. */
+                action = 'GET'
+
+                /* Build package. */
+                pkg = { action, dataId }
+
+                /* Send message request. */
+                _send0penMessage(pkg)
+
+                // console.error(`[ ${dataId} ] [ ${numeral(fileData['data'].length).format('0,0') || 0} bytes ] FAILED VALIDATION from [ ${dbName} ]`)
+
+                // break
+            }
         } else {
             _addLog(`[ ${dataId} ] NOT IN DB, now requesting from [ 0PEN ]`)
 
@@ -118,9 +199,6 @@ const _handleConfig = async function (_data) {
 
             /* Send message request. */
             _send0penMessage(pkg)
-
-            // FIXME TEMPORARY FOR TESTING PURPOSES ONLY
-            // break
         }
     }
 

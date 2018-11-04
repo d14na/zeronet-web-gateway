@@ -41,13 +41,17 @@ const vueAppManager = {
         BLOCK_HASH_LENGTH: 20,
         CHUNK_LENGTH: 16384,
 
-        /* Search */
-        query: null,
+        /* Device Status */
+        storageUsed: null,
+        storageQuota: null,
 
         /* Network Status */
         networkIdentity: null,
         networkStatus: null,
         networkStatusClass: null,
+
+        /* Search */
+        query: null,
 
         /* Messaging */
         msgList: [],
@@ -86,6 +90,123 @@ const vueAppManager = {
                 icon: '/img/dark-hood-icon.jpg',
                 nametag: 'Private Guest'
             }
+
+            /* Send an empty message to the gatekeeper to initialize. */
+            _authGatekeeper()
+
+            /* Add keyboard (esc) detection. */
+            $(document).keyup(function (e) {
+                /* Hide ALL modal windows. */
+                if (e.keyCode === 27) {
+                    /* Clear modals. */
+                    _clearModals(0)
+                }
+            })
+
+            // const databaseName = '_pouch_files'
+            // var req = indexedDB.deleteDatabase(databaseName);
+            // req.onsuccess = function () {
+            //     console.log("Deleted database successfully");
+            // };
+            // req.onerror = function () {
+            //     console.log("Couldn't delete database");
+            // };
+            // req.onblocked = function () {
+            //     console.log("Couldn't delete database due to the operation being blocked");
+            // }
+
+            /* Calculate the storage capacity of the device. */
+            // NOTE Different limits depending on browser type:
+            //      - 7,335,365,041 (7GB) using Regular-mode
+            //      - 8,615,745 (8MB) using Incognito-mode
+            navigator.webkitTemporaryStorage.queryUsageAndQuota((_usage, _quota) => {
+                /* Set storage used. */
+                this.storageUsed = _usage
+
+                /* Set storage quota. */
+                this.storageQuota = _quota
+
+                console.info(`Temporary storage usage [ ${numeral(this.storageUsed).format('0.00 b')} ]`)
+                console.info(`Temporary storage quota [ ${numeral(this.storageQuota).format('0.00 b')} ]`)
+
+                if (this.storageUsed === this.storageQuota) {
+                    navigator.webkitTemporaryStorage.requestQuota (
+                        this.storageUsed + 10000,
+                        (_results) => {
+                            console.log('Temporary quota increase results', _results)
+
+                            navigator.webkitTemporaryStorage.queryUsageAndQuota((_usage, _quota) => {
+                                console.log('NEW [Temporary] QUOTAS', _usage, _quota)
+                            })
+                        },
+                        (_error) => {
+                            console.error('ERROR: Requesting increased storage', _error)
+                        })
+                }
+            })
+
+            // navigator.webkitPersistentStorage.queryUsageAndQuota((_usage, _quota) => {
+            //     return
+            //     /* Set storage used. */
+            //     this.storageUsed = _usage
+            //
+            //     /* Set storage quota. */
+            //     this.storageQuota = _quota
+            //
+            //     console.info(`Persistent storage usage [ ${numeral(this.storageUsed).format('0.00 b')} ]`)
+            //     console.info(`Persistent storage quota [ ${numeral(this.storageQuota).format('0.00 b')} ]`)
+            //
+            //     if (true) {
+            //     // if (this.storageUsed === this.storageQuota) {
+            //         navigator.webkitPersistentStorage.requestQuota (
+            //             this.storageQuota * 2,
+            //             (_results) => {
+            //                 console.log('Persistent quota increase results', _results)
+            //
+            //                 navigator.webkitPersistentStorage.queryUsageAndQuota((_usage, _quota) => {
+            //                     console.log('NEW [Persistent] QUOTAS', _usage, _quota)
+            //                 })
+            //             },
+            //             (_error) => {
+            //                 console.error('ERROR: Requesting increased storage', _error)
+            //             })
+            //     }
+            // })
+
+            /* Verify NO parent window! */
+            // if (window.self === window.top) {
+            //     console.log('NOTIFICATION', Notification)
+            //
+            //     if (Notification) {
+            //         console.log('Notification.permission', Notification.permission)
+            //
+            //         if (Notification.permission === 'denied') {
+            //             console.log('Requesting have been denied!')
+            //             alert('Oh! Looks like you DO NOT want to be IN THE KNOW!')
+            //         } else if (Notification.permission !== 'granted') {
+            //             console.log('Requesting permission now!')
+            //             Notification.requestPermission()
+            //         } else {
+            //             var notification = new Notification('Notification title', {
+            //                icon: 'http://cdn.sstatic.net/stackexchange/img/logos/so/so-icon.png',
+            //                body: "Hey there! You've been notified!",
+            //              })
+            //
+            //              notification.onclick = function () {
+            //                window.open("http://stackoverflow.com/a/13328397/1269037");
+            //              }
+            //         }
+            //     } else {
+            //         alert('Desktop notifications not available in your browser. Try Chromium.');
+            //     }
+            // } else {
+            //     console.info('0net is contained within another window. Escaping now!')
+            //
+            //     window.open(window.location.toString(), '_top')
+            // 	document.write('Please wait, now escaping from iframe...')
+            // 	window.stop()
+            // 	document.execCommand('Stop', false)
+            // }
         },
         _parseFlags: function (_flags) {
             if (_flags.indexOf('ADMIN') !== -1) {
@@ -153,55 +274,3 @@ const vueAppManager = {
 
 /* Initialize the application. */
 const App = new Vue(vueAppManager)
-
-/**
- * jQuery says it's time to boogie!
- */
-$(document).ready(() => {
-    /* Send an empty message to the gatekeeper to initialize. */
-    _authGatekeeper()
-
-    /* Add keyboard (esc) detection. */
-    $(document).keyup(function (e) {
-        /* Hide ALL modal windows. */
-        if (e.keyCode === 27) {
-            /* Clear modals. */
-            _clearModals(0)
-        }
-    })
-
-    /* Verify NO parent window! */
-    // if (window.self === window.top) {
-    //     console.log('NOTIFICATION', Notification)
-    //
-    //     if (Notification) {
-    //         console.log('Notification.permission', Notification.permission)
-    //
-    //         if (Notification.permission === 'denied') {
-    //             console.log('Requesting have been denied!')
-    //             alert('Oh! Looks like you DO NOT want to be IN THE KNOW!')
-    //         } else if (Notification.permission !== 'granted') {
-    //             console.log('Requesting permission now!')
-    //             Notification.requestPermission()
-    //         } else {
-    //             var notification = new Notification('Notification title', {
-    //                icon: 'http://cdn.sstatic.net/stackexchange/img/logos/so/so-icon.png',
-    //                body: "Hey there! You've been notified!",
-    //              })
-    //
-    //              notification.onclick = function () {
-    //                window.open("http://stackoverflow.com/a/13328397/1269037");
-    //              }
-    //         }
-    //     } else {
-    //         alert('Desktop notifications not available in your browser. Try Chromium.');
-    //     }
-    // } else {
-    //     console.info('0net is contained within another window. Escaping now!')
-    //
-    //     window.open(window.location.toString(), '_top')
-    // 	document.write('Please wait, now escaping from iframe...')
-    // 	window.stop()
-    // 	document.execCommand('Stop', false)
-    // }
-})

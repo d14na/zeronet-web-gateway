@@ -12,7 +12,11 @@
 const _dbManager = {}
 
 /* Initialize PouchDB for ALL required (configuration) data. */
-_dbManager['main'] = new PouchDB('main')
+// NOTE Options apply to this database due to its:
+//          1. high-usage (called on nearly every action).
+//          2. low read-write (mainly used for catalog / info lookups).
+//          3. small size (storing only metadata).
+_dbManager['main'] = new PouchDB('main', { auto_compaction: true })
 
 /* Initialize PouchDB for (primary) zite files. */
 // NOTE Separate db is used in the event of an LRU total database deletion.

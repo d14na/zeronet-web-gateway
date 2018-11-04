@@ -239,6 +239,10 @@ const _verifyMetadata = function (_infoHash, _metadata) {
  * NOTE Decoding file data (primarily for UI display).
  */
 const _formatFileData = function (_data, _fileExt) {
+    if (typeof _data === 'undefined') {
+        return null
+    }
+
     switch (_fileExt.toUpperCase()) {
     // TODO Add support for ALL raw string formats.
     case '': // NOTE Support for extension-less files (eg LICENSE).
@@ -251,30 +255,29 @@ const _formatFileData = function (_data, _fileExt) {
         break
     case 'CSS':
         _data = `<style>${Buffer.from(_data).toString()}</style>`
+        // _data = Buffer.from(_data).toString()
         break
     case 'JS':
         try {
             // _data = `<script>eval(${Buffer.from(_data).toString()})</script>`
             _data = `<script>${Buffer.from(_data).toString()}</script>`
+            // _data = Buffer.from(_data).toString()
         } catch (_err) {
             console.error('ERROR: Parsing JS', _data)
         }
         break
     case 'XML':
-        _data = `<xml>${Buffer.from(_data).toString()}</xml>`
+        _data = Buffer.from(_data).toString()
         break
     case 'GIF':
         _data = `data:image/gif;base64,${_imgConverter(_data)}`
-        // _data = `<img class="img-fluid" src="data:image/gif;base64,${_imgConverter(_data)}" width="300">`
         break
     case 'JPG':
     case 'JPEG':
         _data = `data:image/jpeg;base64,${_imgConverter(_data)}`
-        // _data = `<img class="img-fluid" src="data:image/jpeg;base64,${_imgConverter(_data)}" width="300">`
         break
     case 'PNG':
         _data = `data:image/png;base64,${_imgConverter(_data)}`
-        // _data = `<img class="img-fluid" src="data:image/png;base64,${_imgConverter(_data)}" width="300">`
         break
     default:
         // NOTE Leave as buffer (for binary files).
@@ -284,4 +287,42 @@ const _formatFileData = function (_data, _fileExt) {
     }
 
     return _data
+}
+
+/**
+ * Validate File Data
+ */
+const _validateFileData = function (_config, _fileData, _innerPath) {
+    /* Set files list. */
+    const files = _config.files
+
+    /* Set (configuraton) file size. */
+    const configSize = files[_innerPath].size
+
+    /* Set (configuration) hash. */
+    const configHash = files[_innerPath].sha512
+
+    // console.log(`${_innerPath} size/hash`, configSize, configHash)
+
+    /* Calculate file size. */
+    const fileSize = parseInt(_fileData.length)
+    // console.log(`File size/length [ ${fileSize} ]`)
+
+    /* Calculate file verifcation hash. */
+    const fileHash = _calcFileHash(_fileData)
+    // console.log(`File verification hash [ ${fileHash} ]`)
+
+    /* Initialize valid flag. */
+    let isValid = null
+
+    /* Verify the signature of the file. */
+    if (configSize === fileSize && configHash === fileHash) {
+        isValid = true
+    } else {
+        isValid = false
+    }
+
+    _addLog(`${_innerPath} validation is [ ${isValid} ]`)
+
+    return isValid
 }
