@@ -101,15 +101,15 @@ const _handleConfig = async function (_data) {
     } else if (savedConfig && modified < savedConfig.modified) {
         _addLog('OLD CONFIG FILE -- IGNORED.')
 
-        /* Run HTML body renderer. */
-        _renderer(App.destination, config)
+        /* Run HTML body builder. */
+        _bodyBuilder(App.destination, config)
 
         // return
     } else if (savedConfig && modified === savedConfig.modified) {
         _addLog('Zite configuration file is current.')
 
-        /* Run HTML body renderer. */
-        _renderer(App.destination, config)
+        /* Run HTML body builder. */
+        _bodyBuilder(App.destination, config)
 
         // return
     } else {
@@ -202,6 +202,6 @@ const _handleConfig = async function (_data) {
         }
     }
 
-    /* Run HTML body renderer. */
-    _renderer(App.destination, config)
+    /* Run HTML body builder. */
+    _bodyBuilder(App.destination, config)
 }

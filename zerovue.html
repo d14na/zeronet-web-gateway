@@ -10,7 +10,12 @@ body {
 }
 </style>
 
+<!-- jQuery (https://jquery.com/) -->
 <script src="https://cdn.0net.io/libs/jquery/3.3.1/js/jquery.min.js"></script>
+
+<!-- Mutation Summary (https://github.com/rafaelw/mutation-summary) -->
+<script src="./libs/mutation-summary.js"></script>
+
 <script>
 /* Initialize parent manager. */
 let parent = null
@@ -176,33 +181,57 @@ window.addEventListener('message', function (_event) {
 })
 </script>
 </head>
-<body id="gatekeeper"></body>
+<body></body>
 <script>
-// Select the node that will be observed for mutations
-var targetNode = document.getElementById('gatekeeper')
+const _handleMutations = function (_mutations) {
+    /* Set mutations. */
+    const mutations = _mutations[0]
 
-// Options for the observer (which mutations to observe)
-var config = { attributes: true, childList: true, subtree: true };
+    mutations['added'].forEach((_newElem) => {
+        // do setup work on new elements with data-h-tweet
+        console.log('Element', _newElem)
+    })
+}
 
-// Callback function to execute when mutations are observed
-var callback = function(mutationsList, observer) {
-    for(var mutation of mutationsList) {
-        if (mutation.type == 'childList') {
-            console.log('A child node has been added or removed.');
-        }
-        else if (mutation.type == 'attributes') {
-            console.log('The ' + mutation.attributeName + ' attribute was modified.');
-        }
-    }
-};
-
-// Create an observer instance linked to the callback function
-var observer = new MutationObserver(callback);
-
-// Start observing the target node for configured mutations
-observer.observe(targetNode, config);
-
-// Later, you can stop observing
-// observer.disconnect()
+var observer = new MutationSummary({
+    callback: _handleMutations,
+    queries: [
+        // { attribute: 'data-h-tweet' }
+        // { characterData: true }
+        { all: true }
+    ]
+})
+// // Select the node that will be observed for mutations
+// const targetNode = document.getElementById('zerovue')
+//
+// // Options for the observer (which mutations to observe)
+// const config = {
+//     attributes: true,
+//     childList: true,
+//     subtree: true
+// }
+//
+// // Callback function to execute when mutations are observed
+// const callback = function (mutationsList, observer) {
+//     console.log('MUTATION LIST', mutationsList)
+//
+//     for (let mutation of mutationsList) {
+//         if (mutation.type === 'childList') {
+//             console.log('A child node has been added or removed.')
+//         }
+//         else if (mutation.type === 'attributes') {
+//             console.log('The ' + mutation.attributeName + ' attribute was modified.')
+//         }
+//     }
+// }
+//
+// // Create an observer instance linked to the callback function
+// const observer = new MutationObserver(callback)
+//
+// // Start observing the target node for configured mutations
+// observer.observe(targetNode, config)
+//
+// // Later, you can stop observing
+// // observer.disconnect()
 </script>
 </html>

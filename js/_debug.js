@@ -41,11 +41,11 @@ $('.btnModalDebugTest5').click(async () => {
     body += `<h5>Magic Number: ${Buffer.from(ebook.slice(0, 4)).toString('hex')}</h5>`
     body += `<h5>E-book: ${ebook.length}</h5><pre><code>${ebook}</code></pre>`
 
-    /* Build gatekeeper package. */
+    /* Build zerovue package. */
     const pkg = { body, prepend: true }
 
-    /* Send package to gatekeeper. */
-    _gatekeeperMsg(pkg)
+    /* Send package to zerovue. */
+    _zerovueMsg(pkg)
 
     const blob = new Blob([ebook], { type: 'application/epub+zip' })
     saveAs(blob, filename + '.epub')
@@ -79,11 +79,11 @@ $('.btnModalDebugDbDumps').click(async () => {
         .catch(_errorHandler)
     body += `<hr /><h1>Data / Media Blocks</h1><pre><code>${JSON.stringify(docs, null, 4)}</code></pre>`
 
-    /* Build gatekeeper package. */
+    /* Build zerovue package. */
     pkg = { body }
 
-    /* Send package to gatekeeper. */
-    _gatekeeperMsg(pkg)
+    /* Send package to zerovue. */
+    _zerovueMsg(pkg)
 
     _clearModals()
 })

@@ -101,11 +101,11 @@ const _handleInfo = async function (_data) {
 
     /* Validate body. */
     if (body) {
-        /* Build gatekeeper package. */
+        /* Build zerovue package. */
         pkg = { body }
 
-        /* Send package to gatekeeper. */
-        _gatekeeperMsg(pkg)
+        /* Send package to zerovue. */
+        _zerovueMsg(pkg)
 
         // TEMP Hard-coded request for block #7 (THE ENDGAME)
         // const action = 'GET'

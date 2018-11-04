@@ -61,7 +61,7 @@ support@d14na.org
     <link rel="stylesheet" href="./css/main.css">
 
     <style type="text/css">
-    .gatekeeper {
+    .zerovue {
         position: absolute;
         top: 75px;
         left: 0;
@@ -71,7 +71,7 @@ support@d14na.org
         -webkit-overflow-scrolling: touch;
         /* background-color: rgba(30, 30, 220, 0.5); */
     }
-    .gatekeeper iframe {
+    .zerovue iframe {
         display: block;
         width: 100%;
         height: 100%;
@@ -325,9 +325,9 @@ support@d14na.org
     </div>
 </div>
 
-<!-- Gatekeeper: 0PEN Gateway's Sandboxed Iframe -->
-<div class="gatekeeper">
-    <iframe src='gatekeeper.html' id='gatekeeper' sandbox="allow-forms allow-scripts"></iframe>
+<!-- ZeroVue: 0PEN Gateway's Sandboxed Iframe -->
+<div class="zerovue">
+    <iframe src='zerovue.html' id='zerovue' sandbox="allow-forms allow-scripts"></iframe>
 </div>
 
 <!-- Core JS Libraries -->
@@ -352,10 +352,9 @@ support@d14na.org
 <!-- Local JS Libraries -->
 <script src="./js/_conn.js"></script>
 <script src="./js/_debug.js"></script>
-<script src="./js/_gatekeeper.js"></script>
+<script src="./js/_zerovue.js"></script>
 <script src="./js/_modals.js"></script>
 <script src="./js/_pouchDb.js"></script>
-<script src="./js/_renderer.js"></script>
 <script src="./js/_search.js"></script>
 <script src="./js/_utils.js"></script>
 
@@ -368,6 +367,9 @@ support@d14na.org
 <script src="./js/handlers/_whoAmI.js"></script>
 <script src="./js/handlers/_zeroFile.js"></script>
 <script src="./js/handlers/main.js"></script>
+
+<!-- ZeroVue -->
+<script src="./js/zerovue/_bodyBuilder.js"></script>
 
 <!-- Main JS Library -->
 <script src="./js/main.js"></script>

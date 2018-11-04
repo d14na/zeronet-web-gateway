@@ -70,7 +70,7 @@ window.addEventListener('message', function (_event) {
                     /* Set result. */
                     result = fileData
 
-                    return _gatekeeperMsg({ cmd, to, result })
+                    return _zerovueMsg({ cmd, to, result })
 
                 case 'DBQUERY':
                     _addLog('Received [ dbQuery ]. Sending [ sample movies ]')
@@ -132,12 +132,12 @@ window.addEventListener('message', function (_event) {
                         youtube_id: "6ZfuNTqbHE8"
                     }]
 
-                    return _gatekeeperMsg({ cmd, to, result })
+                    return _zerovueMsg({ cmd, to, result })
 
                 case 'INNERREADY':
                     _addLog('Received [ innerReady ]. Sending [ wrapperOpenedWebsocket ]')
 
-                    return _gatekeeperMsg({
+                    return _zerovueMsg({
                         cmd: 'wrapperOpenedWebsocket',
                         to: data.id,
                         result: null
@@ -192,7 +192,7 @@ window.addEventListener('message', function (_event) {
                         version: '18.10.3'
                     }
 
-                    return _gatekeeperMsg({ cmd, to, result })
+                    return _zerovueMsg({ cmd, to, result })
 
                 case 'SITEINFO':
                     _addLog('Received [ siteInfo ]. Sending [ ZeroCoding sample ]')
@@ -232,7 +232,7 @@ window.addEventListener('message', function (_event) {
                         workers: 0
                     }
 
-                    return _gatekeeperMsg({ cmd, to, result })
+                    return _zerovueMsg({ cmd, to, result })
 
                 case 'WRAPPERGETLOCALSTORAGE':
                     _addLog('Received [ wrapperGetLocalStorage ]. Sending [ null ]')
@@ -243,7 +243,7 @@ window.addEventListener('message', function (_event) {
 
                     result = null
 
-                    return _gatekeeperMsg({ cmd, to, result })
+                    return _zerovueMsg({ cmd, to, result })
 
                 case 'WRAPPERSETLOCALSTORAGE':
                     console.error('Writing to Local Storage is UNIMPLEMENTED!')
@@ -254,7 +254,7 @@ window.addEventListener('message', function (_event) {
 
                     result = null
 
-                    return _gatekeeperMsg({ cmd, to, result })
+                    return _zerovueMsg({ cmd, to, result })
 
                 case 'WRAPPERGETSTATE':
                     _addLog('Received [ wrapperGetState ]. Sending [ null ]')
@@ -265,7 +265,7 @@ window.addEventListener('message', function (_event) {
 
                     result = null // window.history.state
 
-                    return _gatekeeperMsg({ cmd, to, result })
+                    return _zerovueMsg({ cmd, to, result })
 
                 default:
                     return console.error('Unhandled API event', data)
@@ -304,7 +304,7 @@ window.addEventListener('message', function (_event) {
  * don't have an origin which we can target.
  * (this might allow some "zero-day-style" esoteric attacks)
  */
-const _gatekeeperMsg = function (_message = {}) {
+const _zerovueMsg = function (_message = {}) {
     contentWindow.postMessage(_message, '*')
 }
 
@@ -318,8 +318,8 @@ const _authGatekeeper = async function () {
     /* Validate application initialization. */
     if (!gateReady) {
         setTimeout(function () {
-            /* Send empty message to the gatekeeper for initialization. */
-            _gatekeeperMsg()
+            /* Send empty message to the zerovue for initialization. */
+            _zerovueMsg()
         }, 1000)
     }
 }

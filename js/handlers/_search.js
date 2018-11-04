@@ -10,11 +10,11 @@ const _handleSearch = function (_data) {
     /* Retrieve search result. */
     const body = _data.result
 
-    /* Build gatekeeper package. */
+    /* Build zerovue package. */
     const pkg = { body }
 
-    /* Send package to gatekeeper. */
-    _gatekeeperMsg(pkg)
+    /* Send package to zerovue. */
+    _zerovueMsg(pkg)
 
     /* Clear modals. */
     _clearModals()

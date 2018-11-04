@@ -11,7 +11,7 @@ let _numHandled = 0
 /**
  * HTML Page Renderer
  */
-const _renderer = function (_dest, _config) {
+const _bodyBuilder = function (_dest, _config) {
     console.log('HTML BODY RENDERER CALLED', new Date())
 
     /* Validate destination. */
@@ -27,7 +27,7 @@ const _renderer = function (_dest, _config) {
         /* Retry body builder (after delay). */
         return setTimeout(() => {
             console.log('FAILED INDEX.HTML CHECK')
-            _renderer(_dest, _config)
+            _bodyBuilder(_dest, _config)
         }, RETRY_BUILD_DELAY)
     } else {
         /* Set start page (index.html). */
@@ -58,7 +58,7 @@ const _renderer = function (_dest, _config) {
     /* Set ending match. */
     let endMatch = `>`
 
-    /* LINK */
+    /* LINK (eg. style sheets) */
     while (App.ziteMgr[_dest]['body'].indexOf(startMatch, startPos) !== -1 && _numHandled < SAFETY_MAX) {
         /* Handle element, then update start position. */
         startPos = _handleElem(_dest, startPos, startMatch, endMatch)
@@ -73,7 +73,37 @@ const _renderer = function (_dest, _config) {
     /* Reset ending match. */
     endMatch = `>`
 
-    /* LINK */
+    /* IMG */
+    while (App.ziteMgr[_dest]['body'].indexOf(startMatch, startPos) !== -1 && _numHandled < SAFETY_MAX) {
+        /* Handle element, then update start position. */
+        startPos = _handleElem(_dest, startPos, startMatch, endMatch)
+    }
+
+    /* Reset start position. */
+    startPos = 0
+
+    /* Reset starting match. */
+    startMatch = `url('`
+
+    /* Reset ending match. */
+    endMatch = `'`
+
+    /* URL (eg. background-image) */
+    while (App.ziteMgr[_dest]['body'].indexOf(startMatch, startPos) !== -1 && _numHandled < SAFETY_MAX) {
+        /* Handle element, then update start position. */
+        startPos = _handleElem(_dest, startPos, startMatch, endMatch)
+    }
+
+    /* Reset start position. */
+    startPos = 0
+
+    /* Reset starting match. */
+    startMatch = `<script `
+
+    /* Reset ending match. */
+    endMatch = `script>`
+
+    /* SCRIPT */
     while (App.ziteMgr[_dest]['body'].indexOf(startMatch, startPos) !== -1 && _numHandled < SAFETY_MAX) {
         /* Handle element, then update start position. */
         startPos = _handleElem(_dest, startPos, startMatch, endMatch)
@@ -207,62 +237,6 @@ const _renderer = function (_dest, _config) {
     /* Reset start position. */
     startPos = 0
 
-    while (App.ziteMgr[_dest]['body'].indexOf('<img', startPos) !== -1 && _numHandled < SAFETY_MAX) {
-        break
-        /* Set starting position. */
-        startPos = App.ziteMgr[_dest]['body'].indexOf('<img', startPos)
-
-        /* Set ending position. */
-        endPos = App.ziteMgr[_dest]['body'].indexOf('>', startPos + 1)
-
-        /* Validate element end position. */
-        if (endPos < startPos) {
-            console.error('Continuing past BAD ELEMENT @', startPos)
-            continue
-        }
-
-        /* Retrieve element. */
-        elem = App.ziteMgr[_dest]['body'].slice(startPos, endPos + 1)
-
-        if (
-            elem.includes('href="https://') ||
-            elem.includes('href="http://') ||
-            elem.includes('href="//')
-        ) {
-            // console.log('Found (Remote) Element', elem)
-        } else {
-            console.log('Found (Local) Element', elem)
-
-            /* Retrieve the image source. */
-            // FIXME Why is jQuery trying to `parseHTML` on img source (url)??
-            //       Of course it doesn't find it, then it throws an error??
-            let srcStart = elem.indexOf('src="')
-            let srcEnd = elem.indexOf('"', srcStart + 5)
-            let src = elem.slice(srcStart + 5, srcEnd)
-            console.log('Parsed [src]', src)
-
-            let preBody = App.ziteMgr[_dest]['body'].slice(0, startPos)
-            let postBody = App.ziteMgr[_dest]['body'].slice(endPos + 1)
-
-            let inline = App.ziteMgr[_dest]['data'][src]
-
-            /* Parse file data. */
-            inline = elem.replace(src, _formatFileData(inline, 'png'))
-
-            /* Update body. */
-            App.ziteMgr[_dest]['body'] = `${preBody}${inline}${postBody}`
-        }
-
-        /* Set next position. */
-        startPos = endPos + 1
-
-        /* Increment number of handled elements. */
-        _numHandled++
-    }
-
-    /* Reset start position. */
-    startPos = 0
-
     while (App.ziteMgr[_dest]['body'].indexOf('<div style="background-image', startPos) !== -1 && _numHandled < SAFETY_MAX) {
         break
         /* Set starting position. */
@@ -326,14 +300,14 @@ const _renderer = function (_dest, _config) {
             /* Set body. */
             const body = App.ziteMgr[_dest]['body']
 
-            /* Build gatekeeper package. */
+            /* Build zerovue package. */
             const pkg = { body }
 
-            /* Send package to gatekeeper. */
-            _gatekeeperMsg(pkg)
+            /* Send package to zerovue. */
+            _zerovueMsg(pkg)
 
             console.log('SEND WRAPPER READY MESSAGE')
-            return _gatekeeperMsg({ cmd: 'wrapperReady' })
+            return _zerovueMsg({ cmd: 'wrapperReady' })
         }
 
         /* Clear modals. */
@@ -350,7 +324,7 @@ const _renderer = function (_dest, _config) {
         /* Retry body builder (after delay). */
         setTimeout(() => {
             console.log('FAILED REQUIRED FILES CHECK')
-            _renderer(_dest, _config)
+            _bodyBuilder(_dest, _config)
         }, RETRY_BUILD_DELAY)
     }
 }
@@ -383,9 +357,9 @@ const _handleElem = function (_dest, _startIndex, _startMatch, _endMatch) {
 
     /* Validate (external) resources. */
     if (
-        elem.includes(`href="https://`) ||
-        elem.includes(`href="http://`) ||
-        elem.includes(`href="//`)
+        elem.includes(`https://`) ||
+        elem.includes(`http://`) ||
+        elem.includes(`//`) // FIXME Could this break some valid paths??
     ) {
         // SKIP -- DO NOTHING FOR NOW
 
@@ -403,11 +377,28 @@ const _handleElem = function (_dest, _startIndex, _startMatch, _endMatch) {
     /* Initialize path starting index. */
     let pathStart = null
 
+    /* Initialize path ending index. */
+    let pathEnd = null
+
     /* Set path starting index. */
     if (elem.indexOf(`href="`) !== -1) {
+        /* Set path starting index. */
         pathStart = elem.indexOf(`href="`) + 6
+
+        /* Set path ending index. */
+        pathEnd = elem.indexOf(`"`, pathStart)
     } else if (elem.indexOf(`src="`) !== -1) {
+        /* Set path starting index. */
         pathStart = elem.indexOf(`src="`) + 5
+
+        /* Set path ending index. */
+        pathEnd = elem.indexOf(`"`, pathStart)
+    } else if (elem.indexOf(`url('`) !== -1) {
+        /* Set path starting index. */
+        pathStart = elem.indexOf(`url('`) + 5
+
+        /* Set path ending index. */
+        pathEnd = elem.indexOf(`'`, pathStart)
     }
 
     /* Validate path starting index. */
@@ -419,25 +410,20 @@ const _handleElem = function (_dest, _startIndex, _startMatch, _endMatch) {
         return (_startIndex + _startMatch.length)
     }
 
-    /* Set path ending index. */
-    let pathEnd = elem.indexOf(`"`, pathStart)
-
     /* Set local path. */
     let localPath = elem.slice(pathStart, pathEnd)
 
     console.info(`Parsed a (Local) Element [ ${localPath} ]`)
 
-    /* Set file extension. */
-    let fileExt = localPath.slice(-4)
+    /* Initialize file extension. */
+    let fileExt = null
 
-    /* Validate file extension. */
-    // TODO Improve with regex
-    if (fileExt.slice(0, 1) === '.') {
-        /* Remove dot. */
-        fileExt = fileExt.slice(1).toUpperCase()
+    /* Validate extension in local path. */
+    if (localPath.indexOf('.') !== -1) {
+        fileExt = localPath.split('.').pop().toUpperCase()
     } else {
         console.error(
-            `Continuing past a BAD path [ ${localPath} ] [ ${fileExt} ]`)
+            `Continuing past a BAD local path [ ${localPath} ] has NO extension.`)
 
         /* Return next start position. */
         return (_startIndex + _startMatch.length)
@@ -454,12 +440,36 @@ const _handleElem = function (_dest, _startIndex, _startMatch, _endMatch) {
         /* Set inlined (file data). */
         let inline = App.ziteMgr[_dest]['data'][localPath]
 
+        /* Validate inline. */
+        if (!inline) {
+            console.error(
+                `Continuing past a BAD file data [ ${localPath} ]`)
+
+            /* Return next start position. */
+            return (_startIndex + _startMatch.length)
+        }
+
         /* Parse inlined (file data). */
         inline = _formatFileData(inline, fileExt)
 
         /* Update zite manager (body). */
         App.ziteMgr[_dest]['body'] = `${prepend}<style>${inline}</style>${append}`
     } else if (fileExt === 'PNG') {
+        /* Set prepended body. */
+        let prepend = body.slice(0, _startIndex + pathStart)
+
+        /* Set appended body. */
+        let append = body.slice(_startIndex + pathEnd)
+
+        /* Set inlined (file data). */
+        let inline = App.ziteMgr[_dest]['data'][localPath]
+
+        /* Parse inlined (file data). */
+        inline = _formatFileData(inline, fileExt)
+
+        /* Update zite manager (body). */
+        App.ziteMgr[_dest]['body'] = `${prepend}${inline}${append}`
+    } else if (fileExt === 'JPG') {
         /* Set prepended body. */
         let prepend = body.slice(0, _startIndex + pathStart)
 

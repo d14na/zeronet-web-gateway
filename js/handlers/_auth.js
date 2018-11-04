@@ -18,11 +18,11 @@ const _handleAuth = function (_data) {
 
     /* Validate body. */
     if (body) {
-        /* Build gatekeeper package. */
+        /* Build zerovue package. */
         pkg = { body, prepend: true }
 
-        /* Send package to gatekeeper. */
-        _gatekeeperMsg(pkg)
+        /* Send package to zerovue. */
+        _zerovueMsg(pkg)
     }
 
     /* Clear modals. */

@@ -22,11 +22,11 @@ let identity = null
 /* Initialize a no-op stub. */
 // function noop() {}
 
-/* Initialize a manager to gatekeeper's (iframe). */
-const gatekeeper = $('#gatekeeper')
+/* Initialize a manager to zerovue's (iframe). */
+const zerovue = $('#zerovue')
 
-/* Initialize the gatekeeper's content window. */
-const contentWindow = gatekeeper[0].contentWindow
+/* Initialize the zerovue's content window. */
+const contentWindow = zerovue[0].contentWindow
 
 /**
  * Vue Application Manager
@@ -91,7 +91,7 @@ const vueAppManager = {
                 nametag: 'Private Guest'
             }
 
-            /* Send an empty message to the gatekeeper to initialize. */
+            /* Send an empty message to the zerovue to initialize. */
             _authGatekeeper()
 
             /* Add keyboard (esc) detection. */
@@ -252,11 +252,11 @@ const vueAppManager = {
 
             body += '</pre>'
 
-            /* Build gatekeeper package. */
+            /* Build zerovue package. */
             pkg = { body }
 
-            /* Send package to gatekeeper. */
-            _gatekeeperMsg(pkg)
+            /* Send package to zerovue. */
+            _zerovueMsg(pkg)
         },
         networkStatusShowAll: function () {
             alert('_networkStatusShowAll')
